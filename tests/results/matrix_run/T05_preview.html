@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ta">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NIE Tutor Lesson Preview</title>
+    <style>
+      :root { --bg: #0b1020; --fg: #e9eefc; --muted: #a9b3d8; --accent: #4cc9f0; --card: #121a34; }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+        background: radial-gradient(1200px 600px at 20% 0%, rgba(76,201,240,0.25), transparent 55%),
+                    radial-gradient(900px 500px at 90% 20%, rgba(160,122,255,0.18), transparent 60%),
+                    var(--bg);
+        color: var(--fg);
+      }
+      .wrap { max-width: 980px; margin: 0 auto; padding: 20px; }
+      .header {
+        display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+        padding: 16px 18px; border-radius: 14px; background: rgba(18,26,52,0.85); border: 1px solid rgba(255,255,255,0.08);
+        position: sticky; top: 12px;
+        backdrop-filter: blur(6px);
+      }
+      .header h1 { margin: 0; font-size: 18px; letter-spacing: 0.2px; }
+      .meta { color: var(--muted); font-size: 13px; line-height: 1.4; }
+      .grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 14px; }
+      .card {
+        background: rgba(18,26,52,0.85);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .card .title {
+        padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.08);
+        font-weight: 700;
+      }
+      .content { padding: 14px 16px; }
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        background: rgba(0,0,0,0.18);
+        border: 1px solid rgba(255,255,255,0.08);
+        padding: 12px 14px;
+        border-radius: 12px;
+        color: var(--fg);
+        line-height: 1.45;
+      }
+      .pill {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(76,201,240,0.12);
+        border: 1px solid rgba(76,201,240,0.35);
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 12px;
+      }
+      .small { color: var(--muted); font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="header">
+        <div>
+          <h1>NIE Tutor Lesson Preview</h1>
+          <div class="small">Local file preview (no external assets)</div>
+        </div>
+        <div class="meta">
+          <div><span class="pill">t01</span></div>
+          <div>intent: <b>EXPLAIN</b> | dialect: <b>jaffna</b></div>
+          <div>diagram: <b>factor_tree</b></div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="title">Teaching Explanation (Tamil)</div>
+          <div class="content">
+            <pre>24, 60, 90 ஆகிய எண்களின் பொ.ம.சி.யைக் காண்பதற்கு, ஒவ்வொரு எண்ணையும் முதன்மைக் காரணிகளின் பெருக்கமாக எழுதுவோம்.
+
+**24 ஐ முதன்மைக் காரணிகளின் பெருக்கமாக எழுதுதல்:**
+
+```
+   24
+  /  \
+ 2   12
+     / \
+    2   6
+        / \
+       2   3
+```
+ஆகவே, 24 = 2 × 2 × 2 × 3
+
+**60 ஐ முதன்மைக் காரணிகளின் பெருக்கமாக எழுதுதல்:**
+
+```
+   60
+  /  \
+ 2   30
+     / \
+    2   15
+        / \
+       3   5
+```
+ஆகவே, 60 = 2 × 2 × 3 × 5
+
+**90 ஐ முதன்மைக் காரணிகளின் பெருக்கமாக எழுதுதல்:**
+
+```
+   90
+  /  \
+ 2   45
+     / \
+    3   15  (4+5=9, 9 ஆனது 3 ஆல் வகுபடும்)
+        / \
+       3   5  (1+5=6, 6 ஆனது 3 ஆல் வகுபடும்)
+```
+ஆகவே, 90 = 2 × 3 × 3 × 5
+
+இப்போது, 24, 60, 90 இன் முதன்மைக் காரணிகளின் பெருக்கங்களை ஒப்பிட்டு பொ.ம.சி.யைக் காண்போம்:
+
+24 = 2 × 2 × 2 × 3
+60 = 2 × 2 × 3 × 5
+90 = 2 × 3 × 3 × 5
+
+ஒவ்வொரு முதன்மைக் காரணியின் ஆகக்கூடிய அடுக்கைப் பயன்படுத்துவோம்:
+2 இன் ஆகக்கூடிய அடுக்கு = 2³ (2 × 2 × 2)
+3 இன் ஆகக்கூடிய அடுக்கு = 3² (3 × 3)
+5 இன் ஆகக்கூடிய அடுக்கு = 5¹ (5)
+
+பொ.ம.சி. = 2 × 2 × 2 × 3 × 3 × 5
+பொ.ம.சி. = 8 × 9 × 5
+பொ.ம.சி. = 72 × 5
+பொ.ம.சி. = 360
+
+ஆகவே, 24, 60, 90 இன் பொ.ம.சி. 360 ஆகும்.</pre>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="title">Diagram (Spec for Flutter renderer)</div>
+          <div class="content">
+            <div class="small" style="margin-bottom:10px;">
+              caption_ta: <b>24 இன் காரணி மரம்</b>
+            </div>
+            <pre>{
+  &quot;diagram&quot;: &quot;factor_tree&quot;,
+  &quot;root&quot;: 24,
+  &quot;tree&quot;: {
+    &quot;value&quot;: 24,
+    &quot;left&quot;: {
+      &quot;value&quot;: 2,
+      &quot;is_prime&quot;: true
+    },
+    &quot;right&quot;: {
+      &quot;value&quot;: 12,
+      &quot;left&quot;: {
+        &quot;value&quot;: 2,
+        &quot;is_prime&quot;: true
+      },
+      &quot;right&quot;: {
+        &quot;value&quot;: 6,
+        &quot;left&quot;: {
+          &quot;value&quot;: 2,
+          &quot;is_prime&quot;: true
+        },
+        &quot;right&quot;: {
+          &quot;value&quot;: 3,
+          &quot;is_prime&quot;: true
+        }
+      }
+    }
+  },
+  &quot;prime_factors&quot;: [
+    2,
+    2,
+    2,
+    3
+  ],
+  &quot;result_label_ta&quot;: &quot;24 = 2 × 2 × 2 × 3&quot;,
+  &quot;highlight_primes&quot;: true,
+  &quot;animate_step_by_step&quot;: true,
+  &quot;label_ta&quot;: &quot;24 இன் காரணி மரம்&quot;
+}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

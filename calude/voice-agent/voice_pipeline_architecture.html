@@ -1,0 +1,193 @@
+
+<style>
+.w{padding:1rem 0;font-size:11px}
+.tier{border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);margin-bottom:8px;overflow:hidden}
+.th{padding:7px 12px;font-size:12px;font-weight:500;color:var(--color-text-primary);border-bottom:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:8px}
+.tb{padding:8px 12px}
+.row{display:flex;flex-wrap:wrap;gap:5px;align-items:flex-start}
+.box{padding:5px 9px;border-radius:6px;border:0.5px solid transparent;font-size:10px;font-weight:500;line-height:1.4;min-width:90px}
+.b-blue{background:#E6F1FB;color:#0C447C;border-color:#B5D4F4}
+.b-teal{background:#E1F5EE;color:#085041;border-color:#9FE1CB}
+.b-purple{background:#EEEDFE;color:#3C3489;border-color:#CECBF6}
+.b-amber{background:#FAEEDA;color:#633806;border-color:#FAC775}
+.b-coral{background:#FAECE7;color:#712B13;border-color:#F5C4B3}
+.b-green{background:#EAF3DE;color:#27500A;border-color:#C0DD97}
+.b-gray{background:#F1EFE8;color:#2C2C2A;border-color:#D3D1C7}
+.b-red{background:#FCEBEB;color:#501313;border-color:#F7C1C1}
+.sub{font-size:9px;font-weight:400;color:inherit;opacity:.7;margin-top:1px}
+.sep{height:0.5px;background:var(--color-border-tertiary);margin:7px 0}
+.label{font-size:9px;color:var(--color-text-tertiary);font-weight:500;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.arrow{font-size:18px;color:var(--color-text-tertiary);text-align:center;line-height:1;margin:2px 0}
+.badge{font-size:9px;padding:1px 5px;border-radius:3px;margin-left:5px;vertical-align:middle}
+.b-new{background:#EAF3DE;color:#3B6D11}
+.b-key{background:#FAEEDA;color:#854F0B}
+.b-crit{background:#FCEBEB;color:#A32D2D}
+.detail{font-size:10px;color:var(--color-text-tertiary);margin-top:5px;line-height:1.5}
+.vad-detail{background:var(--color-background-secondary);border-radius:6px;padding:8px 10px;margin-top:6px;font-size:10px;color:var(--color-text-secondary);line-height:1.6}
+.phase{font-size:10px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px}
+.timeline{display:flex;gap:3px;align-items:center;margin-top:6px;flex-wrap:wrap}
+.ts{padding:3px 7px;border-radius:4px;font-size:9px;font-weight:500}
+.ts-speak{background:#E6F1FB;color:#0C447C}
+.ts-pause{background:#FAEEDA;color:#633806}
+.ts-vad{background:#E1F5EE;color:#085041}
+.ts-final{background:#EAF3DE;color:#27500A}
+.ts-arrow{color:var(--color-text-tertiary);font-size:12px}
+</style>
+<div class="w">
+
+<div class="tier">
+  <div class="th" style="background:rgba(55,138,221,0.04)">
+    Layer 1 — Audio capture &amp; Voice Activity Detection (VAD)
+    <span class="badge b-key">solves the pause problem</span>
+  </div>
+  <div class="tb">
+    <div class="label">Flutter (Android) audio stack</div>
+    <div class="row">
+      <div class="box b-blue">Microphone<div class="sub">flutter_sound / record</div></div>
+      <div class="box b-blue">PCM stream<div class="sub">16kHz mono, 16-bit</div></div>
+      <div class="box b-blue">Frame buffer<div class="sub">30ms chunks</div></div>
+      <div class="box b-teal">Silero VAD<div class="sub">on-device ONNX</div></div>
+      <div class="box b-teal">Smart endpoint<div class="sub">pause vs end detection</div></div>
+    </div>
+    <div class="vad-detail">
+      <div class="phase">How VAD solves student pauses mid-sentence:</div>
+      The core problem: a Grade 7 student says "72 உம் 108 உம்..." then pauses 1.5s while thinking "...ஆகிய எண்களின் போ.கா.பெ. காண்க". Without intelligent VAD, a simple silence timeout cuts off mid-sentence.
+      <div class="timeline">
+        <span class="ts ts-speak">Speech detected</span><span class="ts-arrow">→</span>
+        <span class="ts ts-pause">Pause ≤ 2.5s</span><span class="ts-arrow">→</span>
+        <span class="ts ts-vad">VAD: still active</span><span class="ts-arrow">→</span>
+        <span class="ts ts-speak">Speech resumes</span><span class="ts-arrow">→</span>
+        <span class="ts ts-pause">Pause &gt; 2.5s + math complete</span><span class="ts-arrow">→</span>
+        <span class="ts ts-final">Finalize utterance</span>
+      </div>
+      <div style="margin-top:5px">
+        Silero VAD (30ms chunks, 92kB ONNX model, runs on-device) gives speech probability 0.0–1.0 per frame.<br>
+        Adaptive timeout: 1.5s for short answers, 3.0s for problem-stating, 4.5s when numbers detected mid-utterance.<br>
+        Math pause guard: if partial transcript contains digit words (இரண்டு, மூன்று) or operators, extend timeout.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="arrow">↕</div>
+
+<div class="tier">
+  <div class="th" style="background:rgba(29,158,117,0.04)">
+    Layer 2 — Speech-to-Text with Tamil dialect awareness
+    <span class="badge b-key">handles 5 SL dialects</span>
+  </div>
+  <div class="tb">
+    <div class="label">Dual-path STT strategy</div>
+    <div class="row">
+      <div class="box b-teal">Path A: Cloud<div class="sub">Google Cloud STT v2</div></div>
+      <div class="box b-teal">Tamil ta-IN model<div class="sub">chirp_2 / enhanced</div></div>
+      <div class="box b-teal">Math word hints<div class="sub">speech adaptation</div></div>
+    </div>
+    <div class="sep"></div>
+    <div class="row">
+      <div class="box b-gray">Path B: On-device<div class="sub">Whisper.cpp (small)</div></div>
+      <div class="box b-gray">300MB model<div class="sub">post first-load cache</div></div>
+      <div class="box b-gray">Offline fallback<div class="sub">2G/3G resilient</div></div>
+    </div>
+    <div class="detail">
+      Speech Adaptation phrases injected to Google STT: காரணி, மடங்கு, இலக்கச் சுட்டி, போ.கா.பெ., போ.ம.சி., முதன்மை எண் — prevents ASR mishearing math vocabulary as common words.<br>
+      On-device path activates automatically when network RTT &gt; 3000ms or signal strength &lt; 2G.
+    </div>
+  </div>
+</div>
+
+<div class="arrow">↕</div>
+
+<div class="tier">
+  <div class="th" style="background:rgba(127,119,221,0.04)">
+    Layer 3 — Tamil dialect detection &amp; normalization
+    <span class="badge b-new">new in this version</span>
+  </div>
+  <div class="tb">
+    <div class="row">
+      <div class="box b-purple">Acoustic features<div class="sub">pitch, formants, rhythm</div></div>
+      <div class="box b-purple">Lexical features<div class="sub">dialect-marker words</div></div>
+      <div class="box b-purple">Dialect classifier<div class="sub">5-class: J/B/E/C/V</div></div>
+      <div class="box b-purple">NIE normalizer<div class="sub">dialect → standard</div></div>
+      <div class="box b-purple">Math term fix<div class="sub">spoken → written form</div></div>
+    </div>
+    <div class="detail">
+      Jaffna: formal, closest to NIE → minimal change needed<br>
+      Batticaloa: distinct phonology → vowel mapping, verb form normalization<br>
+      Estate: Malayalam borrowings, shortened forms → full NIE term restoration<br>
+      Colombo: code-switching → strip English math terms, replace with NIE Tamil<br>
+      Math term normalization: "HCF காண்க" → "போ.கா.பெ. காண்க", "factor" → "காரணி"
+    </div>
+  </div>
+</div>
+
+<div class="arrow">↕</div>
+
+<div class="tier">
+  <div class="th" style="background:rgba(186,117,23,0.04)">
+    Layer 4 — Math-aware query post-processing
+    <span class="badge b-key">critical for accuracy</span>
+  </div>
+  <div class="tb">
+    <div class="row">
+      <div class="box b-amber">Number word → digit<div class="sub">இரண்டு → 2</div></div>
+      <div class="box b-amber">Operator detection<div class="sub">பெருக்கல் → ×</div></div>
+      <div class="box b-amber">Completeness check<div class="sub">is question fully stated?</div></div>
+      <div class="box b-amber">Confidence score<div class="sub">0.0 – 1.0</div></div>
+      <div class="box b-amber">Re-prompt trigger<div class="sub">if incomplete/ambiguous</div></div>
+    </div>
+    <div class="detail">
+      Number word mapping: இரண்டு=2, மூன்று=3, நூறு=100, etc. Handles compound numbers: "நூற்று இருபத்தி ஆறு" → 126.<br>
+      If completeness_score &lt; 0.6, tutor speaks: "கொஞ்சம் மீண்டும் கேட்கலாமா?" (Can I hear that again?) before processing.
+    </div>
+  </div>
+</div>
+
+<div class="arrow">↕</div>
+
+<div class="tier">
+  <div class="th" style="background:rgba(55,138,221,0.04)">
+    Layer 5 — Multi-agent orchestrator (existing) → response generation
+  </div>
+  <div class="tb">
+    <div class="row">
+      <div class="box b-blue">QueryAgent</div>
+      <div class="box b-blue">RetrievalAgent</div>
+      <div class="box b-blue">TeachingAgent</div>
+      <div class="box b-blue">DrawingAgent</div>
+      <div class="box b-blue">ExerciseAgent</div>
+      <div class="box b-blue">VerificationAgent</div>
+    </div>
+    <div class="detail">Existing pipeline from agent_orchestrator.py — receives normalized NIE Tamil text, returns TeachingResponse with explanation_ta</div>
+  </div>
+</div>
+
+<div class="arrow">↕</div>
+
+<div class="tier">
+  <div class="th" style="background:rgba(29,158,117,0.04)">
+    Layer 6 — Text-to-Speech: Tamil voice output
+    <span class="badge b-new">dialect-matched voice</span>
+  </div>
+  <div class="tb">
+    <div class="label">TTS pipeline</div>
+    <div class="row">
+      <div class="box b-teal">Math SSML builder<div class="sub">2×3 → "இரண்டு பெருக்கல் மூன்று"</div></div>
+      <div class="box b-teal">Google Cloud TTS<div class="sub">ta-IN WaveNet / Neural2</div></div>
+      <div class="box b-teal">Audio cache<div class="sub">frequent phrases pre-cached</div></div>
+      <div class="box b-teal">Flutter playback<div class="sub">just_audio / audioplayers</div></div>
+    </div>
+    <div class="sep"></div>
+    <div class="label">Offline TTS fallback</div>
+    <div class="row">
+      <div class="box b-gray">Android TTS engine<div class="sub">Tamil locale (ta-IN)</div></div>
+      <div class="box b-gray">On-device cache<div class="sub">common phrases pre-synth</div></div>
+    </div>
+    <div class="detail">
+      SSML handles math: 36 → "முப்பத்தி ஆறு", × → "பெருக்கல்", ÷ → "வகுத்தல்", போ.கா.பெ. → "பொதுக் காரணிகளுட் பெரியது".<br>
+      Tutor speaks in chunks — first explanation sentence plays while rest is synthesising (streaming TTS).
+    </div>
+  </div>
+</div>
+
+</div>

@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ta">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NIE Tutor Lesson Preview</title>
+    <style>
+      :root { --bg: #0b1020; --fg: #e9eefc; --muted: #a9b3d8; --accent: #4cc9f0; --card: #121a34; }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+        background: radial-gradient(1200px 600px at 20% 0%, rgba(76,201,240,0.25), transparent 55%),
+                    radial-gradient(900px 500px at 90% 20%, rgba(160,122,255,0.18), transparent 60%),
+                    var(--bg);
+        color: var(--fg);
+      }
+      .wrap { max-width: 980px; margin: 0 auto; padding: 20px; }
+      .header {
+        display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+        padding: 16px 18px; border-radius: 14px; background: rgba(18,26,52,0.85); border: 1px solid rgba(255,255,255,0.08);
+        position: sticky; top: 12px;
+        backdrop-filter: blur(6px);
+      }
+      .header h1 { margin: 0; font-size: 18px; letter-spacing: 0.2px; }
+      .meta { color: var(--muted); font-size: 13px; line-height: 1.4; }
+      .grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 14px; }
+      .card {
+        background: rgba(18,26,52,0.85);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .card .title {
+        padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.08);
+        font-weight: 700;
+      }
+      .content { padding: 14px 16px; }
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        background: rgba(0,0,0,0.18);
+        border: 1px solid rgba(255,255,255,0.08);
+        padding: 12px 14px;
+        border-radius: 12px;
+        color: var(--fg);
+        line-height: 1.45;
+      }
+      .pill {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(76,201,240,0.12);
+        border: 1px solid rgba(76,201,240,0.35);
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 12px;
+      }
+      .small { color: var(--muted); font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="header">
+        <div>
+          <h1>NIE Tutor Lesson Preview</h1>
+          <div class="small">Local file preview (no external assets)</div>
+        </div>
+        <div class="meta">
+          <div><span class="pill">matrix_T02_method3_division_ladder_1774862277_1</span></div>
+          <div>intent: <b>SHOW_METHOD</b> | dialect: <b>batticaloa</b></div>
+          <div>diagram: <b>division_ladder</b></div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="title">Teaching Explanation (Tamil)</div>
+          <div class="content">
+            <pre>6, 12, 18 ஆகிய எண்களின் பொதுக் காரணிகளுட் பெரியதைக் (பொ.கா.பெ.) காண்பதற்கு வகுத்தல் ஏணி முறையைப் பயன்படுத்துவோம்.
+
+முதலில், 6, 12, 18 ஆகிய மூன்று எண்களையும் வகுக்கும் முதன்மை எண்களைக் கண்டுபிடிப்போம்.
+
+1.  6, 12, 18 ஆகிய எண்கள் அனைத்தும் இரட்டை எண்கள். எனவே, இவை 2 ஆல் வகுபடும்.
+    
+    ```
+    2 | 6, 12, 18
+      | --------
+        3,  6,  9
+    ```
+    
+    (ஒன்றினிடத்து இலக்கம் 6, 2, 8 என்பதால் இவை 2 ஆல் வகுபடும்.)
+
+2.  இப்போது 3, 6, 9 ஆகிய எண்களை வகுக்கும் முதன்மை எண்களைக் கண்டுபிடிப்போம். இந்த எண்கள் அனைத்தும் 3 ஆல் வகுபடும்.
+    
+    ```
+    3 | 3,  6,  9
+      | --------
+        1,  2,  3
+    ```
+    
+    (3 இன் இலக்கச் சுட்டி 3, 6 இன் இலக்கச் சுட்டி 6, 9 இன் இலக்கச் சுட்டி 9. இவை அனைத்தும் 3 ஆல் வகுபடும்.)
+
+3.  இறுதியாகக் கிடைத்த எண்கள் 1, 2, 3. இந்த எண்களுக்குப் பொதுவான காரணி 1 மட்டுமே. எனவே, வகுத்தலை இத்துடன் நிறுத்துவோம்.
+
+பொ.கா.பெ.யைக் காண, இடது பக்கத்தில் வகுத்த முதன்மை எண்களைப் பெருக்குவோம்.
+
+பொ.கா.பெ. = 2 × 3 = 6
+
+ஆகவே, 6, 12, 18 இன் பொ.கா.பெ. 6 ஆகும்.</pre>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="title">Diagram (Spec for Flutter renderer)</div>
+          <div class="content">
+            <div class="small" style="margin-bottom:10px;">
+              caption_ta: <b>6, 12, 18 இன் பொ.கா.பெ. = 6</b>
+            </div>
+            <pre>{
+  &quot;diagram&quot;: &quot;division_ladder&quot;,
+  &quot;numbers&quot;: [
+    6,
+    12,
+    18
+  ],
+  &quot;steps&quot;: [
+    {
+      &quot;divisor&quot;: 2,
+      &quot;before&quot;: [
+        6,
+        12,
+        18
+      ],
+      &quot;after&quot;: [
+        3,
+        6,
+        9
+      ]
+    },
+    {
+      &quot;divisor&quot;: 3,
+      &quot;before&quot;: [
+        3,
+        6,
+        9
+      ],
+      &quot;after&quot;: [
+        1,
+        2,
+        3
+      ]
+    }
+  ],
+  &quot;hcf_value&quot;: 6,
+  &quot;hcf_product_shown&quot;: &quot;2 × 3 = 6&quot;,
+  &quot;animate&quot;: true,
+  &quot;label_ta&quot;: &quot;6, 12, 18 இன் பொ.கா.பெ. = 6&quot;
+}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

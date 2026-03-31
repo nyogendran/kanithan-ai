@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ta">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NIE Tutor Lesson Preview</title>
+    <style>
+      :root { --bg: #0b1020; --fg: #e9eefc; --muted: #a9b3d8; --accent: #4cc9f0; --card: #121a34; }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+        background: radial-gradient(1200px 600px at 20% 0%, rgba(76,201,240,0.25), transparent 55%),
+                    radial-gradient(900px 500px at 90% 20%, rgba(160,122,255,0.18), transparent 60%),
+                    var(--bg);
+        color: var(--fg);
+      }
+      .wrap { max-width: 980px; margin: 0 auto; padding: 20px; }
+      .header {
+        display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+        padding: 16px 18px; border-radius: 14px; background: rgba(18,26,52,0.85); border: 1px solid rgba(255,255,255,0.08);
+        position: sticky; top: 12px;
+        backdrop-filter: blur(6px);
+      }
+      .header h1 { margin: 0; font-size: 18px; letter-spacing: 0.2px; }
+      .meta { color: var(--muted); font-size: 13px; line-height: 1.4; }
+      .grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 14px; }
+      .card {
+        background: rgba(18,26,52,0.85);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .card .title {
+        padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.08);
+        font-weight: 700;
+      }
+      .content { padding: 14px 16px; }
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        background: rgba(0,0,0,0.18);
+        border: 1px solid rgba(255,255,255,0.08);
+        padding: 12px 14px;
+        border-radius: 12px;
+        color: var(--fg);
+        line-height: 1.45;
+      }
+      .pill {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(76,201,240,0.12);
+        border: 1px solid rgba(76,201,240,0.35);
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 12px;
+      }
+      .small { color: var(--muted); font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="header">
+        <div>
+          <h1>NIE Tutor Lesson Preview</h1>
+          <div class="small">Local file preview (no external assets)</div>
+        </div>
+        <div class="meta">
+          <div><span class="pill">matrix_T04_method1_factor_pairs_1774869965_1</span></div>
+          <div>intent: <b>SHOW_METHOD</b> | dialect: <b>estate</b></div>
+          <div>diagram: <b>factor_pairs</b></div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="title">Teaching Explanation (Tamil)</div>
+          <div class="content">
+            <pre>6, 12, 18 ஆகிய எண்களின் பொதுக் காரணிகளுட் பெரியதைக் (பொ.கா.பெ.) காண்பதற்கு, நாம் ஒவ்வொரு எண்ணின் காரணிகளையும் பட்டியலிடுவோம்.
+
+**6 இன் காரணிகள்:**
+
+6 ஐ மீதியின்றி வகுக்கும் எண்கள்:
+1 × 6 = 6
+2 × 3 = 6
+
+ஆகவே, 6 இன் காரணிகள்: 1, 2, 3, 6.
+
+**12 இன் காரணிகள்:**
+
+12 ஐ மீதியின்றி வகுக்கும் எண்கள்:
+1 × 12 = 12
+2 × 6 = 12
+3 × 4 = 12
+
+ஆகவே, 12 இன் காரணிகள்: 1, 2, 3, 4, 6, 12.
+
+**18 இன் காரணிகள்:**
+
+18 ஐ மீதியின்றி வகுக்கும் எண்கள்:
+1 × 18 = 18
+2 × 9 = 18
+3 × 6 = 18
+
+ஆகவே, 18 இன் காரணிகள்: 1, 2, 3, 6, 9, 18.
+
+**பொதுக் காரணிகள்:**
+
+6, 12, 18 ஆகிய மூன்று எண்களுக்கும் பொதுவான காரணிகள்:
+1, 2, 3, 6.
+
+**பொதுக் காரணிகளுட் பெரியது (பொ.கா.பெ.):**
+
+பொதுக் காரணிகளான 1, 2, 3, 6 இல் பெரிய எண் 6 ஆகும்.
+
+ஆகவே, 6, 12, 18 இன் பொ.கா.பெ. = 6.</pre>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="title">Diagram (Spec for Flutter renderer)</div>
+          <div class="content">
+            <div class="small" style="margin-bottom:10px;">
+              caption_ta: <b>6 இன் காரணிகள்: 1, 2, 3, 6</b>
+            </div>
+            <pre>{
+  &quot;diagram&quot;: &quot;factor_pairs&quot;,
+  &quot;number&quot;: 6,
+  &quot;pairs&quot;: [
+    [
+      1,
+      6
+    ],
+    [
+      2,
+      3
+    ]
+  ],
+  &quot;all_factors&quot;: [
+    1,
+    2,
+    3,
+    6
+  ],
+  &quot;label_ta&quot;: &quot;6 இன் காரணிகள்: 1, 2, 3, 6&quot;,
+  &quot;show_multiplication&quot;: true,
+  &quot;animate&quot;: true
+}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

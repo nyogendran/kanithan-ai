@@ -1,0 +1,6 @@
+.venv/
+.env
+chroma_nie_week1/
+__pycache__/
+*.pyc
+data/*.pdf
