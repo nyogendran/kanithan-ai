@@ -10,7 +10,7 @@ from pathlib import Path
 
 from src.config import CHROMA_PATH, COLLECTION_PREFIX, EMBED_MODEL
 
-log = logging.getLogger("nie.ingestion")
+log = logging.getLogger("kanithan.ingestion")
 
 
 @dataclass
@@ -28,7 +28,7 @@ class ChunkMetadata:
     page_end: int
     prerequisites: list            # list of topic strings
     diagram_types: list            # factor_tree|division_ladder|cell_diagram etc
-    nie_terms: list                # key NIE Tamil terms present
+    curriculum_terms: list         # key curriculum Tamil terms present
     has_numbers: bool              # chunk contains mathematical numbers
     is_answer_scheme: bool         # from marking scheme PDF
     language: str                  # tamil|sinhala|english|trilingual
@@ -41,7 +41,7 @@ class ChunkMetadata:
         # Flatten lists to JSON strings (ChromaDB limitation)
         d["prerequisites"] = json.dumps(d["prerequisites"])
         d["diagram_types"] = json.dumps(d["diagram_types"])
-        d["nie_terms"] = json.dumps(d["nie_terms"])
+        d["curriculum_terms"] = json.dumps(d["curriculum_terms"])
         return d
 
     @staticmethod
@@ -49,7 +49,7 @@ class ChunkMetadata:
         d = dict(d)
         d["prerequisites"] = json.loads(d.get("prerequisites", "[]"))
         d["diagram_types"] = json.loads(d.get("diagram_types", "[]"))
-        d["nie_terms"] = json.loads(d.get("nie_terms", "[]"))
+        d["curriculum_terms"] = json.loads(d.get("curriculum_terms", "[]"))
         return ChunkMetadata(**d)
 
 
@@ -71,7 +71,7 @@ class TamilEmbedder:
             log.info(f"Loading embedding model: {self.model_name} (first run downloads ~2GB)")
             # Offline-first: in many dev/CI environments we cannot download models.
             # This makes vector retrieval fail fast and lets the tutor fall back
-            # to keyword + curated NIE corpus (enterprise-grade resiliency).
+            # to keyword + curated curriculum corpus (enterprise-grade resiliency).
             offline_only = os.environ.get("EMBED_OFFLINE_ONLY", "1").strip().lower() in (
                 "1",
                 "true",
@@ -146,14 +146,14 @@ class TamilEmbedder:
         return emb.tolist()
 
 
-class NIEVectorStore:
+class CurriculumVectorStore:
     """
-    ChromaDB-based vector store for NIE curriculum chunks.
+    ChromaDB-based vector store for curriculum chunks.
 
     Collections:
-    - nie_curriculum_g{grade}_ch{chapter}_{subject} — main content
-    - nie_answers_g{grade}_ch{chapter} — marking scheme answers
-    - nie_past_papers_g{grade} — past O/L exam questions
+    - kanithan_curriculum_g{grade}_ch{chapter}_{subject} — main content
+    - kanithan_answers_g{grade}_ch{chapter} — marking scheme answers
+    - kanithan_past_papers_g{grade} — past O/L exam questions
 
     Migration path to Qdrant (production):
     - Replace ChromaDB client with qdrant_client.QdrantClient

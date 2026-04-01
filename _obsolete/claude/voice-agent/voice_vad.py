@@ -3,7 +3,7 @@ voice_vad.py — Voice Activity Detection with Math-Aware Pause Handling
 ======================================================================
 Solves the core problem: a Grade 7 student says "72 உம் 108 உம்..."
 then pauses 1.5s while thinking, then continues "...ஆகிய எண்களின்
-போ.கா.பெ. காண்க". A simple silence timeout cuts them off mid-sentence.
+பொ.கா.பெ. காண்க". A simple silence timeout cuts them off mid-sentence.
 
 Solution: Silero VAD (on-device, 92kB ONNX) + adaptive timeout + 
 partial transcript analysis for math completeness detection.
@@ -35,7 +35,7 @@ from typing import AsyncIterator, Optional
 
 import numpy as np
 
-log = logging.getLogger("nie.vad")
+log = logging.getLogger("kanithan.vad")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIGURATION
@@ -106,7 +106,7 @@ CONTINUATION_SIGNALS_TA = [
 # Math operators — presence suggests a computation question
 MATH_OPERATORS_TA = [
     "பெருக்கல்", "வகுத்தல்", "கூட்டல்", "கழித்தல்",
-    "காரணி", "மடங்கு", "போ.கா.பெ.", "போ.ம.சி.",
+    "காரணி", "மடங்கு", "பொ.கா.பெ.", "பொ.ம.சி.",
     "×", "÷", "+", "-", "=",
 ]
 
@@ -605,7 +605,7 @@ async def simulate_vad_test():
     # Test completeness checker
     test_cases = [
         ("72 உம் 108 உம்", 500),    # incomplete — mid-number
-        ("72 உம் 108 உம் ஆகிய எண்களின் போ.கா.பெ. காண்க", 2000),  # complete
+        ("72 உம் 108 உம் ஆகிய எண்களின் பொ.கா.பெ. காண்க", 2000),  # complete
         ("காரணி என்றால் என்ன?", 1500),   # complete — has terminator
         ("இரண்டு", 800),               # very short
     ]
@@ -620,7 +620,7 @@ async def simulate_vad_test():
     print("\n=== TamilNumberNormalizer Tests ===")
     num_tests = [
         "நூற்று இருபத்தி ஆறு இன் காரணிகள்",
-        "எழுபத்தி இரண்டு உம் நூற்று எட்டு உம் ஆகிய எண்களின் போ.கா.பெ. காண்க",
+        "எழுபத்தி இரண்டு உம் நூற்று எட்டு உம் ஆகிய எண்களின் பொ.கா.பெ. காண்க",
         "இரண்டு பெருக்கல் மூன்று",
     ]
     for t in num_tests:

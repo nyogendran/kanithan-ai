@@ -32,7 +32,7 @@ Usage:
 
 Environment:
   GEMINI_API_KEY   — required
-  NIE_VECTOR_DB    — path to ChromaDB (default: data/vectordb)
+  VECTOR_DB_PATH   — path to ChromaDB (default: data/vector_db)
 """
 
 from __future__ import annotations
@@ -51,7 +51,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-log = logging.getLogger("nie.orchestrator")
+log = logging.getLogger("kanithan.orchestrator")
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
@@ -618,7 +618,7 @@ PREREQUISITE_GRAPH = {
 class RetrievalAgent:
     """
     Dynamic hybrid retrieval from ChromaDB.
-    Replaces the hardcoded NIE_CORPUS list entirely.
+    Replaces the hardcoded curriculum corpus list entirely.
     
     Strategy:
     1. Pre-filter by metadata (student skill level, prerequisites)
@@ -1381,8 +1381,8 @@ class OrchestratorAgent:
 
         # Import and initialize vector store + retrieval
         try:
-            from pipeline_ingestion import NIEVectorStore, TamilEmbedder
-            self.vector_store = NIEVectorStore()
+            from pipeline_ingestion import CurriculumVectorStore, TamilEmbedder
+            self.vector_store = CurriculumVectorStore()
             self.embedder = TamilEmbedder()
             self.retrieval_agent = RetrievalAgent(self.vector_store,
                                                    self.embedder)

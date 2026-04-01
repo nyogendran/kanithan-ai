@@ -1,6 +1,6 @@
-"""NIE Grade 7 Chapter 4 curated corpus — hand-reviewed gold-standard fallback."""
+"""Kanithan Grade 7 Chapter 4 curated corpus — hand-reviewed gold-standard fallback."""
 
-NIE_CORPUS = [
+CURRICULUM_CORPUS = [
 
     # ── TYPE A: CONCEPT CHUNKS ───────────────────────────────────────────────
 

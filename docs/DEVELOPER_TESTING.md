@@ -145,7 +145,7 @@ curl -s -X POST http://127.0.0.1:8001/api/v1/query \
   -H "Content-Type: application/json" \
   -d '{
     "student_id":"t03",
-    "question":"6, 12, 18 இன் பொ.கா.பெ. காண்க (காரணி மரம் முறை)",
+    "question":"18, 180, 162 இன் பொ.கா.பெ. காண்க (காரணி மரம் முறை)",
     "district":"colombo"
   }'
 ```
@@ -245,6 +245,10 @@ It will produce:
 Terminal view:
 ```bash
 python3 tests/scripts/render_terminal_lesson.py --json /path/to/response.json
+```
+Note: `render_terminal_lesson.py` does not support `--out`. If you want to save terminal output:
+```bash
+python3 tests/scripts/render_terminal_lesson.py --json /path/to/response.json > /path/to/response-terminal.txt
 ```
 
 HTML preview:

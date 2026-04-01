@@ -29,7 +29,7 @@ SOCRATIC_HINTS = {
 
 
 class AnswerVerifierAgent:
-    """NIE-aligned verification with deterministic shortcuts and LLM fallback."""
+    """Curriculum-aligned verification with deterministic shortcuts and LLM fallback."""
 
     def __init__(self, gemini_client: object | None = None, model: str = "gemini-2.5-flash") -> None:
         self.client = gemini_client
@@ -130,7 +130,7 @@ class AnswerVerifierAgent:
         answer_context = (
             "\n".join(c["text"] for c in retrieved.answer_scheme_chunks[:2])
             if retrieved.answer_scheme_chunks
-            else "NIE marking scheme not available."
+            else "Curriculum marking scheme not available."
         )
         method_line = (
             f"எதிர்பார்க்கப்படும் முறை (scheme): {exercise.method_expected}\n"

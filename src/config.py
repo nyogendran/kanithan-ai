@@ -1,5 +1,5 @@
 """
-Centralized configuration for the NIE Tamil AI Tutor platform.
+Centralized configuration for the Kanithan AI Tutor platform.
 All settings are loaded from environment variables with sensible defaults.
 """
 
@@ -46,14 +46,14 @@ def llm_fast_model() -> str:
         return OLLAMA_FAST_MODEL
     return GEMINI_FAST_MODEL
 
-CHROMA_PATH: Path = Path(os.environ.get("NIE_VECTOR_DB", str(PROJECT_ROOT / "data" / "vectordb")))
-COLLECTION_PREFIX: str = os.environ.get("NIE_COLLECTION_PREFIX", "nie_curriculum")
+CHROMA_PATH: Path = Path(os.environ.get("VECTOR_DB_PATH", str(PROJECT_ROOT / "data" / "vector_db")))
+COLLECTION_PREFIX: str = os.environ.get("COLLECTION_PREFIX", "kanithan_curriculum")
 EMBED_MODEL: str = os.environ.get("EMBED_MODEL", "BAAI/bge-m3")
 CHUNK_SIZE_TOKENS: int = 400
 CHUNK_OVERLAP_TOKENS: int = 80
 MIN_CHUNK_CHARS: int = 60
 
-DB_PATH: Path = Path(os.environ.get("STUDENT_DB", str(PROJECT_ROOT / "data" / "student_profiles.db")))
+DB_PATH: Path = Path(os.environ.get("LEARNING_PROFILE_DB", str(PROJECT_ROOT / "data" / "learning_profile.db")))
 
 TUTOR_DISTRICT: str = (os.environ.get("TUTOR_DISTRICT") or "unknown").strip()
 

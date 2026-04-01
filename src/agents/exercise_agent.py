@@ -1,4 +1,4 @@
-"""NIE-style exercise generation — logic from adaptive_rag_chapter4 ExerciseGenerator + factor/word generators."""
+"""Curriculum-style exercise generation — logic from adaptive_rag_chapter4 ExerciseGenerator + factor/word generators."""
 
 from __future__ import annotations
 
@@ -7,11 +7,18 @@ from functools import reduce
 from math import gcd, lcm
 from typing import Optional
 
+from src.chapters.base import ChapterTopicPack
+from src.chapters.registry import get_chapter_plugin
 from ..models.messages import ExerciseBundle, QueryContext
 from ..models.student import StudentProfile
 
 
 class ExerciseAgent:
+    def __init__(self, topic_pack: ChapterTopicPack | None = None, chapter: int = 4):
+        pack = topic_pack or get_chapter_plugin(chapter).topic_pack
+        self.default_topic = pack.default_topic
+        self.topic_to_skill = pack.topic_to_skill
+
     """
     Generate exercises modelled on NIE பயிற்சி structure.
     Calibrated to student's current skill level.
@@ -19,7 +26,7 @@ class ExerciseAgent:
 
     @staticmethod
     def _digit_sum(n: int) -> int:
-        """Canonical NIE digit-sum: repeatedly sum digits until single digit (fix F)."""
+        """Canonical curriculum digit-sum: repeatedly sum digits until single digit (fix F)."""
         s = sum(int(d) for d in str(abs(n)))
         while s >= 10:
             s = sum(int(d) for d in str(s))
@@ -28,7 +35,8 @@ class ExerciseAgent:
     def generate(self, ctx: QueryContext, student: StudentProfile) -> Optional[ExerciseBundle]:
         topic = ctx.topic if ctx.topic and ctx.topic != "unknown" else student.last_topic
         if not topic:
-            return None
+            topic = self.default_topic
+        topic = self.topic_to_skill(topic)
 
         difficulty = student.get_difficulty_ceiling()
 
@@ -41,17 +49,17 @@ class ExerciseAgent:
             return self._gen_digit_sum(difficulty)
 
         if topic == "prime_factorization" and difficulty == 2:
-            return self._gen_prime_factorization_nie(difficulty)
+            return self._gen_prime_factorization_curriculum(difficulty)
         if topic in ("prime_factorization", "factors_via_prime"):
             return self._gen_prime_factors_pool(difficulty)
 
         if topic == "hcf" and difficulty == 3:
-            return self._gen_hcf_nie(difficulty)
+            return self._gen_hcf_curriculum(difficulty)
         if topic == "hcf":
             return self._gen_hcf_pool(difficulty)
 
         if topic == "lcm" and difficulty == 3:
-            return self._gen_lcm_nie(difficulty)
+            return self._gen_lcm_curriculum(difficulty)
         if topic == "lcm":
             return self._gen_lcm_pool(difficulty)
 
@@ -154,7 +162,7 @@ class ExerciseAgent:
             method_expected="digit_sum",
         )
 
-    def _gen_prime_factorization_nie(self, difficulty: int) -> ExerciseBundle:
+    def _gen_prime_factorization_curriculum(self, difficulty: int) -> ExerciseBundle:
         n = random.choice([36, 48, 60, 72, 84, 90, 96, 120, 144, 180, 210, 252])
         primes = self._prime_factors_list(n)
         prod_str = " × ".join(map(str, primes))
@@ -203,7 +211,7 @@ class ExerciseAgent:
             d += 1
         return factors
 
-    def _gen_hcf_nie(self, difficulty: int) -> ExerciseBundle:
+    def _gen_hcf_curriculum(self, difficulty: int) -> ExerciseBundle:
         pairs = [
             (12, 18),
             (24, 36),
@@ -259,7 +267,7 @@ class ExerciseAgent:
             method_expected="hcf",
         )
 
-    def _gen_lcm_nie(self, difficulty: int) -> ExerciseBundle:
+    def _gen_lcm_curriculum(self, difficulty: int) -> ExerciseBundle:
         triples = [
             (2, 3, 4),
             (4, 6, 8),

@@ -1,4 +1,4 @@
-"""Build Tamil NIE system prompts and call Gemini (stream or full text)."""
+"""Build Tamil curriculum system prompts and call Gemini (stream or full text)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from typing import Iterator
 
 from ..models import QueryContext, RetrievedContext, StudentProfile
 
-# Method number → topic keys in NIE_CORPUS that carry the textbook procedure.
+# Method number -> topic keys in curriculum corpus that carry the textbook procedure.
 _METHOD_TOPIC_MAP: dict[int, set[str]] = {
     1: {
         "factor_listing_pair_method",
@@ -52,7 +52,7 @@ class TeachingAgent:
         retrieved: RetrievedContext,
     ) -> str | None:
         """
-        Try to build the method scaffold dynamically from retrieved NIE corpus
+        Try to build the method scaffold dynamically from retrieved curriculum corpus
         chunks rather than using hardcoded text.  Returns the scaffold string
         if a matching method chunk is found, else None.
         """
@@ -84,7 +84,7 @@ class TeachingAgent:
 
     @staticmethod
     def _fallback_scaffold(expected_method_number: int) -> str:
-        """Hardcoded scaffold — used only when no NIE corpus chunk is retrieved."""
+        """Hardcoded scaffold — used only when no curriculum chunk is retrieved."""
         return {
             1: """முறை ஒப்பந்தம் (மட்டுமே): முறை I.
 பயன்படுத்த வேண்டிய பாதை:
@@ -141,7 +141,7 @@ class TeachingAgent:
                 else "முறை III (வகுத்தல் ஏணி)"
             )
 
-        # Dynamic scaffold: prefer content from retrieved NIE corpus chunks;
+        # Dynamic scaffold: prefer content from retrieved curriculum chunks;
         # fall back to hardcoded scaffold only if no method chunk was retrieved.
         method_scaffold = self._extract_dynamic_scaffold(expected_method_number, retrieved)
         if method_scaffold is None:

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<title>NIE Tamil Math Tutor — Voice</title>
+<title>Kanithan Tamil Math Tutor — Voice</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -365,6 +365,94 @@ svg.icon { width: 20px; height: 20px; fill: currentColor; }
   40% { transform: scale(1.0); }
 }
 
+/* ─── Conversation state pill ─── */
+.conv-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+.conv-state.listening     { background: var(--accent-dim); color: var(--accent); }
+.conv-state.clarifying    { background: rgba(240,192,64,0.15); color: #f0c040; }
+.conv-state.checking      { background: rgba(79,140,255,0.15); color: var(--primary); }
+.conv-state.diagnosing    { background: rgba(251,146,60,0.15); color: #fb923c; }
+.conv-state.responding    { background: var(--accent-dim); color: var(--accent); }
+.conv-state.exercising    { background: rgba(168,85,247,0.15); color: #a855f7; }
+
+/* ─── Agent message variants ─── */
+.msg.agent-clarify {
+  align-self: flex-start;
+  background: rgba(240,192,64,0.08);
+  border: 1px solid rgba(240,192,64,0.25);
+  border-bottom-left-radius: 4px;
+}
+.msg.agent-prereq {
+  align-self: flex-start;
+  background: rgba(79,140,255,0.08);
+  border: 1px solid rgba(79,140,255,0.25);
+  border-bottom-left-radius: 4px;
+}
+.msg.agent-diagnostic {
+  align-self: flex-start;
+  background: rgba(251,146,60,0.06);
+  border: 1px solid rgba(251,146,60,0.25);
+  border-bottom-left-radius: 4px;
+}
+.msg.agent-diagnostic .diag-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(251,146,60,0.15);
+  color: #fb923c;
+  margin-bottom: 6px;
+}
+.msg.diagnostic-correct {
+  align-self: flex-start;
+  background: rgba(0,229,160,0.06);
+  border: 1px solid rgba(0,229,160,0.25);
+  border-bottom-left-radius: 4px;
+}
+.msg.diagnostic-incorrect {
+  align-self: flex-start;
+  background: rgba(255,92,92,0.06);
+  border: 1px solid rgba(255,92,92,0.25);
+  border-bottom-left-radius: 4px;
+}
+
+/* ─── Conversation turn counter ─── */
+.turn-counter {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+/* ─── WebSocket / VAD mode ─── */
+.ws-toggle { display: flex; align-items: center; gap: 4px; }
+.ws-toggle input[type="checkbox"] { accent-color: var(--accent); }
+.ws-toggle label { cursor: pointer; }
+
+.conv-state.vad-speech { background: rgba(255,92,92,0.15); color: #ff5c5c; }
+.conv-state.vad-pause  { background: rgba(251,146,60,0.15); color: #fb923c; }
+.conv-state.ws-connected { background: rgba(0,229,160,0.15); color: var(--accent); }
+
+.vad-indicator {
+  width: 8px; height: 8px; border-radius: 50%;
+  display: inline-block; margin-right: 4px;
+  background: var(--text-dim);
+  transition: background 0.2s;
+}
+.vad-indicator.speech { background: #ff5c5c; animation: vadPulse 0.5s infinite alternate; }
+.vad-indicator.idle { background: var(--accent); }
+@keyframes vadPulse { from { opacity: 0.6; } to { opacity: 1; } }
+
 @media (max-width: 480px) {
   header h1 { font-size: 0.85rem; }
   .msg { max-width: 94%; font-size: 0.9rem; }
@@ -376,7 +464,9 @@ svg.icon { width: 20px; height: 20px; fill: currentColor; }
 
 <header>
   <div class="logo">π</div>
-  <h1>NIE கணிதம் — குரல் ஆசிரியர்</h1>
+  <h1>கணிதம் — குரல் ஆசிரியர்</h1>
+  <span class="conv-state listening" id="convState" title="உரையாடல் நிலை">கேட்கிறது</span>
+  <span class="turn-counter" id="turnCounter" title="உரையாடல் சுற்றுகள்">0</span>
   <span class="badge" id="backendBadge" title="Teaching LLM vs voice STT">LLM: …</span>
   <span class="badge" id="dialectBadge">dialect: —</span>
 </header>
@@ -394,10 +484,16 @@ svg.icon { width: 20px; height: 20px; fill: currentColor; }
   <input type="text" id="apiUrl" value="http://localhost:8001" style="width:160px">
   <label>குரல் வேகம்:</label>
   <input type="range" id="speechRate" min="0.5" max="1.5" step="0.1" value="0.9" style="width:80px">
+  <span style="border-left:1px solid var(--border);height:20px;margin:0 4px"></span>
+  <div class="ws-toggle">
+    <input type="checkbox" id="wsMode">
+    <label for="wsMode">WebSocket குரல்</label>
+    <span class="vad-indicator" id="vadIndicator"></span>
+  </div>
 </div>
 
 <div class="chat-area" id="chatArea">
-  <div class="msg system">வணக்கம்! கணிதக் கேள்வியைக் கேளுங்கள் — குரல் அல்லது உரை மூலம்.</div>
+  <div class="msg system">வணக்கம்! நான் உங்கள் கணித ஆசிரியர். கேள்வி கேளுங்கள் — நான் படிப்படியாக உங்களுக்கு உதவுவேன். குரல் அல்லது உரை மூலம் பேசலாம்.</div>
 </div>
 
 <div class="status-strip" id="statusStrip">
@@ -427,6 +523,33 @@ const textInput = $('#textInput');
 const statusStrip = $('#statusStrip');
 const dialectBadge = $('#dialectBadge');
 const backendBadge = $('#backendBadge');
+const convStateEl = $('#convState');
+const turnCounterEl = $('#turnCounter');
+
+const STATE_LABELS = {
+  listening: 'கேட்கிறது',
+  clarifying: 'தெளிவுபடுத்துதல்',
+  checking_fundamentals: 'அடிப்படை சோதனை',
+  teaching_prereq: 'முன்நிபந்தனை கற்பித்தல்',
+  diagnosing: 'அடிப்படை சோதனை',
+  responding: 'பதிலளிக்கிறது',
+  exercising: 'பயிற்சி',
+  verifying: 'சரிபார்த்தல்',
+};
+const STATE_CSS = {
+  listening: 'listening',
+  clarifying: 'clarifying',
+  checking_fundamentals: 'checking',
+  teaching_prereq: 'checking',
+  diagnosing: 'diagnosing',
+  responding: 'responding',
+  exercising: 'exercising',
+  verifying: 'exercising',
+};
+
+let currentConvState = 'listening';
+let lastTranscriptConfidence = 1.0;
+let turnCount = 0;
 
 async function refreshBackendBadge() {
   const baseUrl = ($('#apiUrl') && $('#apiUrl').value || '').replace(/\/$/, '');
@@ -655,6 +778,9 @@ let isSpeaking = false;
 let isRecording = false;
 let mediaRecorder = null;
 let audioChunks = [];
+const STUDENT_ID = 'SL_TM_VOICE_001';
+const VOICE_SESSION_KEY = `voice-ui-${Date.now()}`;
+const MAX_RECORDING_MS = 60000;
 
 function addMsg(type, html, meta) {
   const div = document.createElement('div');
@@ -693,7 +819,19 @@ function formatExplanation(text) {
     .replace(/\n/g, '<br>');
 }
 
-async function sendQuery(question) {
+function updateConvState(state) {
+  currentConvState = state || 'listening';
+  const css = STATE_CSS[currentConvState] || 'listening';
+  convStateEl.className = `conv-state ${css}`;
+  convStateEl.textContent = STATE_LABELS[currentConvState] || currentConvState;
+}
+
+function updateTurnCounter(n) {
+  turnCounterEl.textContent = n;
+  turnCounterEl.title = `உரையாடல் சுற்றுகள்: ${n}`;
+}
+
+async function sendConverse(question, confidence) {
   if (!question.trim()) return;
 
   addMsg('student', question);
@@ -704,17 +842,19 @@ async function sendQuery(question) {
 
   const baseUrl = $('#apiUrl').value.replace(/\/$/, '');
   const district = $('#district').value;
+  const conf = (typeof confidence === 'number') ? confidence : 1.0;
 
   try {
-    const res = await fetch(`${baseUrl}/api/v1/query`, {
+    const res = await fetch(`${baseUrl}/api/v1/voice/converse`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        student_id: 'SL_TM_VOICE_001',
-        question: question,
+        student_id: STUDENT_ID,
+        transcript: question,
+        confidence: conf,
         district: district,
         student_name: 'குரல் மாணவர்',
-        top_k: 6,
+        session_key: VOICE_SESSION_KEY,
       }),
     });
 
@@ -729,60 +869,121 @@ async function sendQuery(question) {
 
     const data = await res.json();
 
-    if (data.dialect_detected && data.dialect_detected !== 'unknown') {
-      dialectBadge.textContent = `dialect: ${data.dialect_detected}`;
+    turnCount++;
+    updateTurnCounter(turnCount);
+    updateConvState(data.state);
+
+    const fullResp = data.full_response || {};
+    if (fullResp.dialect_detected && fullResp.dialect_detected !== 'unknown') {
+      dialectBadge.textContent = `dialect: ${fullResp.dialect_detected}`;
     }
 
-    const rawErr = data.error || '';
+    const rawErr = fullResp.error || '';
     const looksLikeQuota =
-      data.quota_exhausted ||
+      fullResp.quota_exhausted ||
       /429|RESOURCE_EXHAUSTED|generate_content_free_tier|Quota exceeded/i.test(rawErr);
 
     if (looksLikeQuota && rawErr) {
       const wait =
-        data.retry_after_seconds != null
-          ? ` (மீண்டும் முயற்சி: ~${Math.ceil(data.retry_after_seconds)} வி)`
+        fullResp.retry_after_seconds != null
+          ? ` (மீண்டும் முயற்சி: ~${Math.ceil(fullResp.retry_after_seconds)} வி)`
           : '';
       addMsg('error', rawErr + wait);
       setStatus('yellow', 'API அளவு எல்லை');
       return;
     }
 
-    if (data.error && !data.teaching?.explanation_ta?.trim()) {
-      addMsg('error', rawErr);
-      setStatus('red', 'பிழை');
+    const agentText = data.agent_says_ta || '';
+    const state = data.state || 'responding';
+    const actions = data.actions || [];
+
+    if (state === 'clarifying') {
+      lastTutorText = agentText;
+      addMsg('agent-clarify', formatExplanation(agentText));
+      setStatus('yellow', 'தெளிவுபடுத்துதல் — மீண்டும் பேசுங்கள்');
       return;
     }
 
-    const explanation = data.teaching?.explanation_ta || 'பதில் கிடைக்கவில்லை.';
+    if (state === 'checking_fundamentals') {
+      lastTutorText = agentText;
+      addMsg('agent-prereq',
+        `<strong>அடிப்படை சோதனை</strong><br>${formatExplanation(agentText)}`
+      );
+      setStatus('yellow', 'அடிப்படைக் கேள்விக்கு பதிலளியுங்கள்');
+      return;
+    }
+
+    if (state === 'diagnosing') {
+      lastTutorText = agentText;
+      const diag = data.diagnostic || {};
+      const diagActions = actions || [];
+      const isRetry = diagActions.some(a => a.type === 'diagnostic_retry');
+      const prevCorrect = diag.prev_correct;
+      const isStart = diagActions.some(a => a.type === 'diagnostic_start');
+
+      let msgClass = 'agent-diagnostic';
+      if (!isStart && prevCorrect === true) msgClass = 'diagnostic-correct';
+      if (!isStart && prevCorrect === false && !isRetry) msgClass = 'diagnostic-incorrect';
+
+      let badge = '';
+      if (diag.total && diag.current) {
+        badge = `<div class="diag-badge">அடிப்படை ${diag.current}/${diag.total}${diag.skill_label_ta ? ' — ' + diag.skill_label_ta : ''}</div>`;
+      }
+
+      addMsg(msgClass, badge + formatExplanation(agentText));
+
+      const remaining = (diag.total || 1) - (diag.current || 1);
+      setStatus('yellow', `அடிப்படை சோதனை — பதிலை சொல்லுங்கள்${remaining > 0 ? ` (${remaining + 1} மீதமுள்ளது)` : ''}`);
+      return;
+    }
+
+    const explanation = agentText || data.teaching?.explanation_ta || 'பதில் கிடைக்கவில்லை.';
     lastTutorText = explanation;
 
     let metaHtml = '';
-    if (data.intent) metaHtml += `<span>நோக்கம்: ${data.intent}</span>`;
-    if (data.processing_time_ms) metaHtml += `<span>⏱ ${Math.round(data.processing_time_ms)}ms</span>`;
-    if (data.dialect_detected && data.dialect_detected !== 'unknown') {
-      metaHtml += `<span>வட்டாரம்: ${data.dialect_detected}</span>`;
+    if (fullResp.intent) metaHtml += `<span>நோக்கம்: ${fullResp.intent}</span>`;
+    if (fullResp.processing_time_ms) metaHtml += `<span>⏱ ${Math.round(fullResp.processing_time_ms)}ms</span>`;
+    if (fullResp.dialect_detected && fullResp.dialect_detected !== 'unknown') {
+      metaHtml += `<span>வட்டாரம்: ${fullResp.dialect_detected}</span>`;
+    }
+    if (state !== 'listening') {
+      metaHtml += `<span>நிலை: ${STATE_LABELS[state] || state}</span>`;
     }
 
     addMsg('tutor', formatExplanation(explanation), metaHtml);
 
-    if (data.diagram && data.diagram.spec && data.diagram.spec.diagram) {
+    const diagSpec = data.diagram?.spec || fullResp.diagram?.spec;
+    if (diagSpec && diagSpec.diagram) {
       const diagDiv = document.createElement('div');
-      renderDiagram(data.diagram.spec, diagDiv);
+      renderDiagram(diagSpec, diagDiv);
       chatArea.appendChild(diagDiv);
       chatArea.scrollTop = chatArea.scrollHeight;
     }
 
-    if (data.exercise && data.exercise.question_ta) {
+    const exercise = data.exercise || fullResp.exercise;
+    if (exercise && exercise.question_ta) {
       const exDiv = document.createElement('div');
       exDiv.className = 'exercise-card';
       exDiv.innerHTML = `
         <h4>✏️ பயிற்சி</h4>
-        <p>${data.exercise.question_ta}</p>
-        ${data.exercise.hint_ta ? '<p style="color:var(--text-dim);font-size:0.8rem">💡 ' + data.exercise.hint_ta + '</p>' : ''}
+        <p>${exercise.question_ta}</p>
+        ${exercise.hint_ta ? '<p style="color:var(--text-dim);font-size:0.8rem">💡 ' + exercise.hint_ta + '</p>' : ''}
       `;
       chatArea.appendChild(exDiv);
       chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    const diagComplete = actions.find(a => a.type === 'diagnostic_complete');
+    if (diagComplete && data.diagnostic_summary) {
+      const ds = data.diagnostic_summary;
+      const badge = ds.correct === ds.total ? 'var(--accent)' : 'var(--primary)';
+      addMsg('system',
+        `<span style="color:${badge};font-weight:600">அடிப்படை சோதனை முடிந்தது: ${ds.correct}/${ds.total} சரி</span>`
+      );
+    }
+
+    if (actions.some(a => a.type === 'offer_exercise')) {
+      addMsg('system', 'இப்போது ஒரு பயிற்சிக் கேள்வியை முயற்சிப்போமா? உங்கள் பதிலை பேசுங்கள் அல்லது தட்டச்சு செய்யுங்கள்.');
     }
 
     setStatus('green', 'தயார்');
@@ -794,11 +995,28 @@ async function sendQuery(question) {
   }
 }
 
-sendBtn.addEventListener('click', () => sendQuery(textInput.value));
+async function sendQuery(question) {
+  return sendConverse(question, 1.0);
+}
+
+function handleSend() {
+  const text = textInput.value.trim();
+  if (!text) return;
+  if (wsModeCheckbox && wsModeCheckbox.checked && wsVoice && wsVoice.connected) {
+    addMsg('student', text);
+    textInput.value = '';
+    wsVoice.ws.send(JSON.stringify({ type: 'text_input', text }));
+    setStatus('yellow', 'ஆசிரியர் சிந்திக்கிறார்...');
+  } else {
+    sendQuery(text);
+  }
+}
+
+sendBtn.addEventListener('click', handleSend);
 textInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
-    sendQuery(textInput.value);
+    handleSend();
   }
 });
 
@@ -838,6 +1056,8 @@ async function transcribeAudio(blob) {
     body: JSON.stringify({
       audio_base64: b64,
       mime_type: blob.type || 'audio/webm',
+      student_id: STUDENT_ID,
+      session_key: VOICE_SESSION_KEY,
     }),
   });
 
@@ -862,6 +1082,33 @@ async function transcribeAudio(blob) {
 
   const data = await res.json();
   return data.transcript || '';
+}
+
+async function confirmTranscriptAndSend(transcript, sourceTag, confidence) {
+  const initial = (transcript || '').trim();
+  if (!initial) {
+    addMsg('system', 'குரல் புரியவில்லை — மீண்டும் முயற்சிக்கவும்.');
+    setStatus('green', 'தயார்');
+    return;
+  }
+  const conf = (typeof confidence === 'number') ? confidence : 0.85;
+  const edited = window.prompt(
+    `குரல் → உரை (${sourceTag}). சரியாக உள்ளதா?\nதேவையெனில் இங்கே திருத்தி அனுப்புங்கள்:`,
+    initial
+  );
+  if (edited === null) {
+    addMsg('system', 'அனுப்பல் ரத்து செய்யப்பட்டது.');
+    setStatus('green', 'தயார்');
+    return;
+  }
+  const finalText = edited.trim();
+  if (!finalText) {
+    addMsg('system', 'காலியான கேள்வி அனுப்பப்படவில்லை.');
+    setStatus('green', 'தயார்');
+    return;
+  }
+  const editedByUser = (finalText !== initial);
+  sendConverse(finalText, editedByUser ? 1.0 : conf);
 }
 
 const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -972,7 +1219,7 @@ micBtn.addEventListener('click', async () => {
     mediaRecorder.onstart = () => {
       isRecording = true;
       micBtn.classList.add('recording');
-      setStatus('red', '🎤 பேசுங்கள்... (நிறுத்த மீண்டும் அழுத்தவும்)');
+      setStatus('red', `🎤 பேசுங்கள்... (அதிகபட்சம் ${Math.round(MAX_RECORDING_MS / 1000)}வி)`);
       recordingDiv = addMsg('system', '🎤 பதிவு செய்கிறது... <strong>0வி</strong>');
       recordingTimer = setInterval(updateRecordingTime, 1000);
     };
@@ -997,12 +1244,7 @@ micBtn.addEventListener('click', async () => {
 
       try {
         const transcript = await transcribeAudio(blob);
-        if (transcript.trim()) {
-          sendQuery(transcript.trim());
-        } else {
-          addMsg('system', 'குரல் புரியவில்லை — மீண்டும் முயற்சிக்கவும்.');
-          setStatus('green', 'தயார்');
-        }
+        await confirmTranscriptAndSend(transcript, 'Gemini', 0.85);
       } catch (err) {
         const msg = err.message || '';
         const isQuota = err.isQuota || msg.includes('429') || msg.includes('quota');
@@ -1028,8 +1270,7 @@ micBtn.addEventListener('click', async () => {
               setStatus('yellow', '🎤 உலாவி கேட்கிறது...');
               try {
                 const t = await browserSpeechOnce();
-                if (t && t.trim()) sendQuery(t.trim());
-                else addMsg('system', 'குரல் புரியவில்லை.');
+                await confirmTranscriptAndSend(t || '', 'Browser Speech', 0.7);
               } catch (e2) {
                 addMsg('error', e2.message || 'உலாவி குரல் தோல்வி');
               }
@@ -1054,7 +1295,7 @@ micBtn.addEventListener('click', async () => {
       if (isRecording && mediaRecorder.state === 'recording') {
         mediaRecorder.stop();
       }
-    }, 30000);
+    }, MAX_RECORDING_MS);
 
   } catch (err) {
     if (err.name === 'NotAllowedError') {
@@ -1121,7 +1362,317 @@ if (apiUrlInput) {
 window.addEventListener('beforeunload', () => {
   if (isSpeaking) speechSynthesis.cancel();
   if (isRecording && mediaRecorder) mediaRecorder.stop();
+  if (wsVoice) wsVoice.disconnect();
 });
+
+// ═══════════════════════════════════════════════════════════════
+// WebSocket real-time voice mode
+// ═══════════════════════════════════════════════════════════════
+
+const wsModeCheckbox = $('#wsMode');
+const vadIndicator = $('#vadIndicator');
+let wsVoice = null;
+
+class WebSocketVoiceManager {
+  constructor() {
+    this.ws = null;
+    this.audioCtx = null;
+    this.sourceNode = null;
+    this.processorNode = null;
+    this.stream = null;
+    this.connected = false;
+    this.playbackQueue = [];
+    this.isPlaying = false;
+  }
+
+  async connect() {
+    const httpUrl = ($('#apiUrl').value || '').replace(/\/$/, '');
+    const wsUrl = httpUrl.replace(/^http/, 'ws') + '/ws/voice';
+
+    this.ws = new WebSocket(wsUrl);
+    this.ws.binaryType = 'arraybuffer';
+
+    return new Promise((resolve, reject) => {
+      this.ws.onopen = () => {
+        this.connected = true;
+        this.ws.send(JSON.stringify({
+          type: 'start',
+          student_id: STUDENT_ID,
+          district: $('#district').value,
+          student_name: 'குரல் மாணவர்',
+          session_key: VOICE_SESSION_KEY,
+        }));
+        resolve();
+      };
+      this.ws.onerror = (e) => reject(new Error('WebSocket connection failed'));
+      this.ws.onclose = () => {
+        this.connected = false;
+        this._stopCapture();
+        vadIndicator.className = 'vad-indicator';
+        updateConvState('listening');
+        setStatus('green', 'தயார்');
+      };
+      this.ws.onmessage = (e) => this._handleMessage(e);
+    });
+  }
+
+  async startCapture() {
+    this.audioCtx = new AudioContext({ sampleRate: 16000 });
+    if (this.audioCtx.sampleRate !== 16000) {
+      await this.audioCtx.close();
+      this.audioCtx = new AudioContext();
+    }
+
+    this.stream = await navigator.mediaDevices.getUserMedia({
+      audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }
+    });
+
+    const source = this.audioCtx.createMediaStreamSource(this.stream);
+    const bufferSize = 4096;
+    this.processorNode = this.audioCtx.createScriptProcessor(bufferSize, 1, 1);
+
+    const targetRate = 16000;
+    const nativeRate = this.audioCtx.sampleRate;
+
+    this.processorNode.onaudioprocess = (e) => {
+      if (!this.connected || !this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+
+      const input = e.inputBuffer.getChannelData(0);
+      let pcm16;
+
+      if (nativeRate !== targetRate) {
+        const ratio = nativeRate / targetRate;
+        const outLen = Math.floor(input.length / ratio);
+        pcm16 = new Int16Array(outLen);
+        for (let i = 0; i < outLen; i++) {
+          const srcIdx = Math.floor(i * ratio);
+          pcm16[i] = Math.max(-32768, Math.min(32767, Math.round(input[srcIdx] * 32767)));
+        }
+      } else {
+        pcm16 = new Int16Array(input.length);
+        for (let i = 0; i < input.length; i++) {
+          pcm16[i] = Math.max(-32768, Math.min(32767, Math.round(input[i] * 32767)));
+        }
+      }
+
+      this.ws.send(pcm16.buffer);
+    };
+
+    source.connect(this.processorNode);
+    this.processorNode.connect(this.audioCtx.destination);
+  }
+
+  _stopCapture() {
+    if (this.processorNode) {
+      this.processorNode.disconnect();
+      this.processorNode = null;
+    }
+    if (this.stream) {
+      this.stream.getTracks().forEach(t => t.stop());
+      this.stream = null;
+    }
+    if (this.audioCtx) {
+      this.audioCtx.close().catch(() => {});
+      this.audioCtx = null;
+    }
+  }
+
+  disconnect() {
+    this._stopCapture();
+    if (this.ws) {
+      try { this.ws.send(JSON.stringify({ type: 'stop' })); } catch {}
+      this.ws.close();
+      this.ws = null;
+    }
+    this.connected = false;
+  }
+
+  _handleMessage(event) {
+    if (event.data instanceof ArrayBuffer) {
+      this._queueAudio(event.data);
+      return;
+    }
+
+    let data;
+    try { data = JSON.parse(event.data); } catch { return; }
+    const t = data.type;
+
+    if (t === 'connected') {
+      setStatus('green', 'WebSocket இணைக்கப்பட்டது');
+      vadIndicator.className = 'vad-indicator idle';
+    } else if (t === 'listening_start') {
+      vadIndicator.className = 'vad-indicator idle';
+      updateConvState('listening');
+      setStatus('green', '🎤 கேட்கிறது (VAD)...');
+    } else if (t === 'speech_detected') {
+      vadIndicator.className = 'vad-indicator speech';
+    } else if (t === 'utterance_ready') {
+      vadIndicator.className = 'vad-indicator';
+      setStatus('yellow', '🔄 குரல் செயலாக்கம்...');
+    } else if (t === 'stt_result') {
+      addMsg('student', data.text, `<span>confidence: ${(data.confidence || 0).toFixed(2)}</span>`);
+      if (data.dialect && data.dialect !== 'unknown') {
+        dialectBadge.textContent = `dialect: ${data.dialect}`;
+      }
+      setStatus('yellow', 'ஆசிரியர் சிந்திக்கிறார்...');
+    } else if (t === 'response') {
+      turnCount++;
+      updateTurnCounter(turnCount);
+      const state = data.state || 'responding';
+      updateConvState(state);
+
+      const agentText = data.agent_says_ta || '';
+      lastTutorText = agentText;
+
+      if (state === 'clarifying') {
+        addMsg('agent-clarify', formatExplanation(agentText));
+      } else if (state === 'diagnosing') {
+        const diag = data.diagnostic || {};
+        const actions = data.actions || [];
+        const isRetry = actions.some(a => a.type === 'diagnostic_retry');
+        const isStart = actions.some(a => a.type === 'diagnostic_start');
+        let msgClass = 'agent-diagnostic';
+        if (!isStart && diag.prev_correct === true) msgClass = 'diagnostic-correct';
+        if (!isStart && diag.prev_correct === false && !isRetry) msgClass = 'diagnostic-incorrect';
+        let badge = '';
+        if (diag.total && diag.current) {
+          badge = `<div class="diag-badge">அடிப்படை ${diag.current}/${diag.total}${diag.skill_label_ta ? ' — ' + diag.skill_label_ta : ''}</div>`;
+        }
+        addMsg(msgClass, badge + formatExplanation(agentText));
+      } else {
+        addMsg('tutor', formatExplanation(agentText));
+      }
+
+      const diagSpec = (data.diagram || {}).spec;
+      if (diagSpec && diagSpec.diagram) {
+        const diagDiv = document.createElement('div');
+        renderDiagram(diagSpec, diagDiv);
+        chatArea.appendChild(diagDiv);
+      }
+
+      const exercise = data.exercise;
+      if (exercise && exercise.question_ta) {
+        const exDiv = document.createElement('div');
+        exDiv.className = 'exercise-card';
+        exDiv.innerHTML = `<h4>✏️ பயிற்சி</h4><p>${exercise.question_ta}</p>` +
+          (exercise.hint_ta ? `<p style="color:var(--text-dim);font-size:0.8rem">💡 ${exercise.hint_ta}</p>` : '');
+        chatArea.appendChild(exDiv);
+      }
+      chatArea.scrollTop = chatArea.scrollHeight;
+    } else if (t === 'tts_start') {
+      speakBtn.classList.add('speaking');
+      setStatus('green', '🔊 பேசுகிறது...');
+    } else if (t === 'tts_end') {
+      this._flushAudioQueue();
+      speakBtn.classList.remove('speaking');
+      setStatus('green', '🎤 கேட்கிறது (VAD)...');
+    } else if (t === 'error') {
+      addMsg('error', data.message || 'WebSocket பிழை');
+      setStatus('red', 'பிழை');
+    }
+  }
+
+  _queueAudio(arrayBuffer) {
+    this.playbackQueue.push(arrayBuffer);
+    if (!this.isPlaying) this._playNext();
+  }
+
+  async _playNext() {
+    if (this.playbackQueue.length === 0) {
+      this.isPlaying = false;
+      return;
+    }
+    this.isPlaying = true;
+    const buf = this.playbackQueue.shift();
+    try {
+      const ctx = new AudioContext();
+      const decoded = await ctx.decodeAudioData(buf);
+      const source = ctx.createBufferSource();
+      source.buffer = decoded;
+      source.connect(ctx.destination);
+      source.onended = () => {
+        ctx.close().catch(() => {});
+        this._playNext();
+      };
+      source.start(0);
+    } catch (e) {
+      console.warn('Audio playback error:', e);
+      this._playNext();
+    }
+  }
+
+  _flushAudioQueue() {
+    // Let remaining queued audio finish playing naturally
+  }
+}
+
+wsModeCheckbox.addEventListener('change', async () => {
+  if (wsModeCheckbox.checked) {
+    try {
+      wsVoice = new WebSocketVoiceManager();
+      setStatus('yellow', 'WebSocket இணைக்கிறது...');
+      await wsVoice.connect();
+      await wsVoice.startCapture();
+      micBtn.classList.add('recording');
+      addMsg('system', '🎤 WebSocket குரல் நிலை — VAD தொடர்ந்து கேட்கிறது. பேசுங்கள்.');
+    } catch (e) {
+      addMsg('error', `WebSocket இணைப்பு தோல்வி: ${e.message}`);
+      wsModeCheckbox.checked = false;
+      if (wsVoice) { wsVoice.disconnect(); wsVoice = null; }
+      setStatus('red', 'WS இணைப்பு தோல்வி');
+    }
+  } else {
+    if (wsVoice) {
+      wsVoice.disconnect();
+      wsVoice = null;
+    }
+    micBtn.classList.remove('recording');
+    vadIndicator.className = 'vad-indicator';
+    setStatus('green', 'தயார்');
+    addMsg('system', 'HTTP நிலைக்கு மாறியது.');
+  }
+});
+
+// Override mic button when in WS mode
+const origMicHandler = micBtn.onclick;
+micBtn.addEventListener('click', (e) => {
+  if (wsModeCheckbox.checked) {
+    e.stopImmediatePropagation();
+    if (wsVoice && wsVoice.connected) {
+      wsModeCheckbox.checked = false;
+      wsModeCheckbox.dispatchEvent(new Event('change'));
+    }
+  }
+}, true);
+
+// Override speak button to use server TTS when in WS mode
+const origSpeakHandler = speakBtn.onclick;
+speakBtn.addEventListener('click', async (e) => {
+  if (wsModeCheckbox.checked && wsVoice && wsVoice.connected && lastTutorText) {
+    e.stopImmediatePropagation();
+    speakBtn.classList.add('speaking');
+    setStatus('green', '🔊 சேவையக TTS...');
+    try {
+      const baseUrl = ($('#apiUrl').value || '').replace(/\/$/, '');
+      const res = await fetch(`${baseUrl}/api/v1/voice/converse`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          student_id: STUDENT_ID,
+          transcript: '',
+          confidence: 1.0,
+          district: $('#district').value,
+          session_key: VOICE_SESSION_KEY,
+          tts: true,
+        }),
+      });
+      // For now, server TTS is used through the WS pipeline.
+      // Manual speak falls back to browser TTS.
+    } catch {}
+    speakBtn.classList.remove('speaking');
+    setStatus('green', 'தயார்');
+  }
+}, true);
 </script>
 </body>
 </html>

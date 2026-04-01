@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ta">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NIE Tutor Lesson Preview</title>
+    <style>
+      :root { --bg: #0b1020; --fg: #e9eefc; --muted: #a9b3d8; --accent: #4cc9f0; --card: #121a34; }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+        background: radial-gradient(1200px 600px at 20% 0%, rgba(76,201,240,0.25), transparent 55%),
+                    radial-gradient(900px 500px at 90% 20%, rgba(160,122,255,0.18), transparent 60%),
+                    var(--bg);
+        color: var(--fg);
+      }
+      .wrap { max-width: 980px; margin: 0 auto; padding: 20px; }
+      .header {
+        display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+        padding: 16px 18px; border-radius: 14px; background: rgba(18,26,52,0.85); border: 1px solid rgba(255,255,255,0.08);
+        position: sticky; top: 12px;
+        backdrop-filter: blur(6px);
+      }
+      .header h1 { margin: 0; font-size: 18px; letter-spacing: 0.2px; }
+      .meta { color: var(--muted); font-size: 13px; line-height: 1.4; }
+      .grid { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 14px; }
+      .card {
+        background: rgba(18,26,52,0.85);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 14px;
+        overflow: hidden;
+      }
+      .card .title {
+        padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.08);
+        font-weight: 700;
+      }
+      .content { padding: 14px 16px; }
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        background: rgba(0,0,0,0.18);
+        border: 1px solid rgba(255,255,255,0.08);
+        padding: 12px 14px;
+        border-radius: 12px;
+        color: var(--fg);
+        line-height: 1.45;
+      }
+      .pill {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(76,201,240,0.12);
+        border: 1px solid rgba(76,201,240,0.35);
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 12px;
+      }
+      .small { color: var(--muted); font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="header">
+        <div>
+          <h1>NIE Tutor Lesson Preview</h1>
+          <div class="small">Local file preview (no external assets)</div>
+        </div>
+        <div class="meta">
+          <div><span class="pill">t03</span></div>
+          <div>intent: <b>DIAGRAM_REQUEST</b> | dialect: <b>colombo</b></div>
+          <div>diagram: <b>factor_tree</b></div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="title">Teaching Explanation (Tamil)</div>
+          <div class="content">
+            <pre>18, 180, 162 ஆகிய எண்களின் பொ.கா.பெ.யைக் காரணி மரம் முறை மூலம் காண்போம்.
+
+முதலில், ஒவ்வொரு எண்ணையும் முதன்மைக் காரணிகளின் பெருக்கமாக எழுதுவோம்:
+
+**1. 18 இன் முதன்மைக் காரணிகள்:**
+
+```
+      18
+     /  \
+    2    9
+        / \
+       3   3
+```
+ஆகவே, 18 = 2 × 3 × 3 = 2¹ × 3²
+
+**2. 180 இன் முதன்மைக் காரணிகள்:**
+
+```
+       180
+      /   \
+     2     90
+          /  \
+         2    45
+             /  \
+            3    15
+                /  \
+               3    5
+```
+ஆகவே, 180 = 2 × 2 × 3 × 3 × 5 = 2² × 3² × 5¹
+
+**3. 162 இன் முதன்மைக் காரணிகள்:**
+
+```
+       162
+      /   \
+     2     81
+          /  \
+         3    27
+             /  \
+            3    9
+                / \
+               3   3
+```
+ஆகவே, 162 = 2 × 3 × 3 × 3 × 3 = 2¹ × 3⁴
+
+இப்போது, மூன்று எண்களுக்கும் பொதுவான முதன்மைக் காரணிகளைப் பார்ப்போம். ஒவ்வொரு முதன்மைக் காரணியிலும் மிகக் குறைந்த அடுக்கை எடுக்க வேண்டும்:
+
+*   **2:** 18 இல் 2¹, 180 இல் 2², 162 இல் 2¹. இவற்றில் மிகக் குறைந்த அடுக்கு 2¹.
+*   **3:** 18 இல் 3², 180 இல் 3², 162 இல் 3⁴. இவற்றில் மிகக் குறைந்த அடுக்கு 3².
+*   **5:** 180 இல் 5¹ உள்ளது, ஆனால் 18 மற்றும் 162 இல் 5 இல்லை. எனவே, 5 பொதுவான காரணி அல்ல.
+
+பொ.கா.பெ. = பொதுவான முதன்மைக் காரணிகளின் மிகக் குறைந்த அடுக்குகளின் பெருக்கம்
+பொ.கா.பெ. = 2¹ × 3²
+பொ.கா.பெ. = 2 × (3 × 3)
+பொ.கா.பெ. = 2 × 9
+பொ.கா.பெ. = 18
+
+ஆகவே, 18, 180, 162 ஆகிய எண்களின் பொ.கா.பெ. 18 ஆகும்.
+
+மாணவரே, காரணி மரத்தில் ஒவ்வொரு எண்ணையும் முதன்மை எண்களாகப் பிரிக்கும்போது, கடைசி வரிசையில் உள்ள எண்கள் அனைத்தும் முதன்மை எண்களா என்பதை எப்படிச் சரிபார்ப்பீர்கள்?
+முதன்மைக் காரணி என்றால் என்ன, ஒரு எண் 15 ஆல் வகுபடுமா என்பதை எப்படித் தெரிந்துகொள்வது போன்ற கூடுதல் கேள்விகள் இருந்தால் கேட்கலாம்.</pre>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="title">Diagram (Spec for Flutter renderer)</div>
+          <div class="content">
+            <div class="small" style="margin-bottom:10px;">
+              caption_ta: <b>18 இன் காரணி மரம்</b>
+            </div>
+            <pre>{
+  &quot;diagram&quot;: &quot;factor_tree&quot;,
+  &quot;root&quot;: 18,
+  &quot;tree&quot;: {
+    &quot;value&quot;: 18,
+    &quot;left&quot;: {
+      &quot;value&quot;: 2,
+      &quot;is_prime&quot;: true
+    },
+    &quot;right&quot;: {
+      &quot;value&quot;: 9,
+      &quot;left&quot;: {
+        &quot;value&quot;: 3,
+        &quot;is_prime&quot;: true
+      },
+      &quot;right&quot;: {
+        &quot;value&quot;: 3,
+        &quot;is_prime&quot;: true
+      }
+    }
+  },
+  &quot;prime_factors&quot;: [
+    2,
+    3,
+    3
+  ],
+  &quot;result_label_ta&quot;: &quot;18 = 2 × 3 × 3&quot;,
+  &quot;highlight_primes&quot;: true,
+  &quot;animate_step_by_step&quot;: true,
+  &quot;label_ta&quot;: &quot;18 இன் காரணி மரம்&quot;
+}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

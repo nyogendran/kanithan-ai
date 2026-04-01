@@ -50,7 +50,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
-log = logging.getLogger("nie.ingestion")
+log = logging.getLogger("kanithan.ingestion")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ log = logging.getLogger("nie.ingestion")
 # ─────────────────────────────────────────────────────────────────────────────
 
 CHROMA_PATH = Path("data/vectordb")          # persisted ChromaDB
-COLLECTION_PREFIX = "nie_curriculum"        # nie_curriculum_g7_ch4_mathematics
+COLLECTION_PREFIX = "kanithan_curriculum"        # kanithan_curriculum_g7_ch4_mathematics
 EMBED_MODEL = "BAAI/bge-m3"                 # best multilingual model for Tamil
 CHUNK_SIZE_TOKENS = 400                     # ~300–500 tokens per chunk
 CHUNK_OVERLAP_TOKENS = 80                   # overlap to preserve context
@@ -94,9 +94,9 @@ TSCII_TABLE: dict[int, str] = {
     0xC3: "\u0BEE", 0xC4: "\u0BEF", 0x80: "\u0B83",
 }
 
-# Common Sri Lankan Tamil mathematical vocabulary — maps to NIE standard
+# Common Sri Lankan Tamil mathematical vocabulary - maps to curriculum standard
 SL_TAMIL_MATH_NORMALIZATION = {
-    # Estate Tamil variants → NIE standard
+    # Estate Tamil variants -> curriculum standard
     "வகுதல்": "வகுத்தல்",
     "பெருக்கல்": "பெருக்கல்",
     "கூட்டல்": "கூட்டல்",
@@ -148,7 +148,7 @@ class ChunkMetadata:
     page_end: int
     prerequisites: list            # list of topic strings
     diagram_types: list            # factor_tree|division_ladder|cell_diagram etc
-    nie_terms: list                # key NIE Tamil terms present
+    curriculum_terms: list         # key curriculum Tamil terms present
     has_numbers: bool              # chunk contains mathematical numbers
     is_answer_scheme: bool         # from marking scheme PDF
     language: str                  # tamil|sinhala|english|trilingual
@@ -161,7 +161,7 @@ class ChunkMetadata:
         # Flatten lists to JSON strings (ChromaDB limitation)
         d["prerequisites"] = json.dumps(d["prerequisites"])
         d["diagram_types"] = json.dumps(d["diagram_types"])
-        d["nie_terms"] = json.dumps(d["nie_terms"])
+        d["curriculum_terms"] = json.dumps(d["curriculum_terms"])
         return d
 
     @staticmethod
@@ -169,7 +169,7 @@ class ChunkMetadata:
         d = dict(d)
         d["prerequisites"] = json.loads(d.get("prerequisites", "[]"))
         d["diagram_types"] = json.loads(d.get("diagram_types", "[]"))
-        d["nie_terms"] = json.loads(d.get("nie_terms", "[]"))
+        d["curriculum_terms"] = json.loads(d.get("curriculum_terms", "[]"))
         return ChunkMetadata(**d)
 
 
@@ -203,7 +203,7 @@ NIE_DIAGRAM_KEYWORDS = {
     "factor_pairs": ["ஜோடி", "pair", "காரணி ஜோடி"],
 }
 
-NIE_TERM_GLOSSARY = {
+CURRICULUM_TERM_GLOSSARY = {
     "காரணி": "factor",
     "மடங்கு": "multiple",
     "இலக்கச் சுட்டி": "digit_sum",
@@ -504,7 +504,7 @@ class SemanticChunker:
                           source_file: str, sub_idx: int,
                           total_subs: int) -> ChunkMetadata:
         """Extract rich metadata from chunk content."""
-        nie_terms = [term for term in NIE_TERM_GLOSSARY
+        curriculum_terms = [term for term in CURRICULUM_TERM_GLOSSARY
                      if term in text]
         diagrams = [dtype for dtype, keywords in NIE_DIAGRAM_KEYWORDS.items()
                     if any(kw in text for kw in keywords)]
@@ -534,7 +534,7 @@ class SemanticChunker:
             page_end=sc.get("page_end", 0),
             prerequisites=prereq_map.get(sc["topic"], []),
             diagram_types=diagrams,
-            nie_terms=nie_terms,
+            curriculum_terms=curriculum_terms,
             has_numbers=has_numbers,
             is_answer_scheme=False,
             language="tamil",
@@ -596,7 +596,7 @@ class TamilEmbedder:
 # VECTOR STORE (ChromaDB wrapper)
 # ─────────────────────────────────────────────────────────────────────────────
 
-class NIEVectorStore:
+class CurriculumVectorStore:
     """
     ChromaDB-based vector store for NIE curriculum chunks.
     
@@ -758,7 +758,7 @@ class IngestionPipeline:
     def __init__(self):
         self.extractor = PDFExtractor()
         self.embedder = TamilEmbedder()
-        self.store = NIEVectorStore()
+        self.store = CurriculumVectorStore()
 
     def ingest_textbook(self, pdf_path: Path, grade: int, chapter: int,
                         subject: str, start_page: int = 1,
@@ -815,7 +815,7 @@ class IngestionPipeline:
                 section=str(chapter), topic="answer_scheme",
                 chunk_type="answer_scheme", difficulty=3,
                 page_start=page["page_num"], page_end=page["page_num"],
-                prerequisites=[], diagram_types=[], nie_terms=[],
+                prerequisites=[], diagram_types=[], curriculum_terms=[],
                 has_numbers=bool(re.search(r'\d', text)),
                 is_answer_scheme=True, language="tamil",
                 source_file=pdf_path.name,

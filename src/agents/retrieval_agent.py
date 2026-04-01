@@ -1,4 +1,4 @@
-"""Hybrid retrieval: optional vector store + curated NIE corpus keyword fallback."""
+"""Hybrid retrieval: optional vector store + curated curriculum keyword fallback."""
 
 from __future__ import annotations
 
@@ -7,22 +7,34 @@ import json
 import time
 from typing import Any
 
-from ..data.nie_corpus import NIE_CORPUS
-from ..data.prerequisite_graph import PREREQUISITE_GRAPH, topic_to_skill
+from src.chapters.registry import get_chapter_plugin
 from ..models import Intent, QueryContext, RetrievedContext, StudentProfile
 
 
 class RetrievalAgent:
     """
     Vector search (when store + embedder are set) combined with AdaptiveRetriever-style
-    keyword scoring over NIE_CORPUS, merge/dedupe, then prerequisite injection.
+    keyword scoring over CURRICULUM_CORPUS, merge/dedupe, then prerequisite injection.
     """
 
-    def __init__(self, vector_store: Any = None, embedder: Any = None):
+    def __init__(
+        self,
+        vector_store: Any = None,
+        embedder: Any = None,
+        *,
+        chapter: int = 4,
+        corpus: list[dict] | None = None,
+        prerequisite_graph: dict[str, list[str]] | None = None,
+        topic_to_skill=None,
+    ):
+        plugin = get_chapter_plugin(chapter)
+        pack = plugin.topic_pack
         self.vector_store = vector_store
         self.embedder = embedder
-        self.corpus: list[dict] = list(NIE_CORPUS)
-        self.log = logging.getLogger("nie.retrieval")
+        self.corpus: list[dict] = list(corpus if corpus is not None else pack.corpus)
+        self.prerequisite_graph = prerequisite_graph if prerequisite_graph is not None else pack.prerequisite_graph
+        self.topic_to_skill = topic_to_skill if topic_to_skill is not None else pack.topic_to_skill
+        self.log = logging.getLogger("kanithan.retrieval")
 
     def retrieve(
         self,
@@ -85,7 +97,7 @@ class RetrievalAgent:
         )
 
     def _vector_hit_to_chunk(self, hit: dict) -> dict:
-        """Map NIEVectorStore hybrid_query row to NIE_CORPUS-shaped dict."""
+        """Map CurriculumVectorStore hybrid_query row to corpus-shaped dict."""
         meta = hit.get("metadata")
         text = hit.get("text") or ""
         if meta is None:
@@ -139,8 +151,8 @@ class RetrievalAgent:
         injected_ids = {c["id"] for c in results}
         out = list(results)
         for chunk in list(out):
-            for prereq_topic in PREREQUISITE_GRAPH.get(chunk.get("topic", ""), []):
-                skill_key = topic_to_skill(prereq_topic)
+            for prereq_topic in self.prerequisite_graph.get(chunk.get("topic", ""), []):
+                skill_key = self.topic_to_skill(prereq_topic)
                 if student.skills.get(skill_key, 0) < 0.4:
                     prereq_chunks = [
                         c

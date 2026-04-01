@@ -1,4 +1,4 @@
-"""Deterministic math verification blocks for Tamil NIE prompts."""
+"""Deterministic math verification blocks for Tamil curriculum prompts."""
 
 from __future__ import annotations
 
@@ -18,9 +18,9 @@ def lcm_many(nums: list[int]) -> int:
     return reduce(_lcm_two, nums)
 
 
-def _nie_lcm_division_steps(nums: list[int]) -> list[tuple[int, list[int]]]:
+def _curriculum_lcm_division_steps(nums: list[int]) -> list[tuple[int, list[int]]]:
     """
-    NIE-style LCM division ladder: repeat until all rows are 1.
+    Curriculum-style LCM division ladder: repeat until all rows are 1.
     Each step: prefer smallest prime p that divides at least *two* numbers.
     If none, use smallest p that divides exactly one number > 1 (e.g. 4 in 1,4,1).
     """
@@ -133,7 +133,7 @@ class MathVerifierAgent:
     def lcm_verification_block(query: str) -> Optional[str]:
         """
         When the student asks for LCM (பொ.ம.சி.), inject exact lcm value and a correct
-        NIE-style division ladder so the model cannot stop early at e.g. 1,4,1.
+        Curriculum-style division ladder so the model cannot stop early at e.g. 1,4,1.
         """
         lcm_markers = (
             "பொ.ம.சி",
@@ -153,7 +153,7 @@ class MathVerifierAgent:
             return None
 
         lcm_val = lcm_many(nums)
-        steps = _nie_lcm_division_steps(nums)
+        steps = _curriculum_lcm_division_steps(nums)
         ladder_lines = []
         for p, row in steps:
             row_s = ", ".join(str(x) for x in row)

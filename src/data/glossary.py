@@ -1,11 +1,11 @@
 """
-NIE Tamil mathematical terminology with regional variants.
-Maps NIE formal terms to regional spoken equivalents and English.
+Curriculum Tamil mathematical terminology with regional variants.
+Maps formal curriculum terms to regional spoken equivalents and English.
 """
 
 from __future__ import annotations
 
-NIE_TERM_GLOSSARY: dict[str, str] = {
+CURRICULUM_TERM_GLOSSARY: dict[str, str] = {
     "காரணி": "factor",
     "மடங்கு": "multiple",
     "இலக்கச் சுட்டி": "digit_sum",

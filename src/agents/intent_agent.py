@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from typing import Optional
 
+from src.chapters.base import ChapterTopicPack
+from src.chapters.registry import get_chapter_plugin
 from src.models.intents import Dialect, Intent
 from src.models.messages import QueryContext
 from src.models.student import StudentProfile
@@ -140,16 +142,19 @@ _INTENT_ENUM: dict[str, Intent] = {i.name: i for i in Intent}
 
 
 class IntentAgent:
-    """Keyword-based intent and topic parsing aligned with NIE chapter-4 scaffolding."""
-
-    INTENT_PRIORITY = INTENT_PRIORITY
-    INTENT_KEYWORDS = INTENT_KEYWORDS
-    TOPIC_KEYWORDS = TOPIC_KEYWORDS
+    """Keyword-based intent and topic parsing aligned with curriculum chapter-4 scaffolding."""
+    def __init__(self, topic_pack: ChapterTopicPack | None = None, chapter: int = 4):
+        pack = topic_pack or get_chapter_plugin(chapter).topic_pack
+        self.intent_priority = pack.intent_priority
+        self.intent_keywords = pack.intent_keywords
+        self.topic_keywords = pack.topic_keywords
+        self.section_topic_map = pack.section_topic_map
+        self.default_topic = pack.default_topic
 
     def _intent_scores(self, query: str) -> dict[str, int]:
         query_lower = query.lower()
-        scores: dict[str, int] = {k: 0 for k in self.INTENT_KEYWORDS}
-        for intent, keywords in self.INTENT_KEYWORDS.items():
+        scores: dict[str, int] = {k: 0 for k in self.intent_keywords}
+        for intent, keywords in self.intent_keywords.items():
             for kw in keywords:
                 if kw.lower() in query_lower:
                     scores[intent] += 1
@@ -157,21 +162,21 @@ class IntentAgent:
 
     def classify(self, query: str) -> Intent:
         scores = self._intent_scores(query)
-        for name in self.INTENT_PRIORITY:
+        for name in self.intent_priority:
             if scores.get(name, 0) > 0:
                 return _INTENT_ENUM[name]
         return Intent.EXPLAIN
 
     def detect_topic(self, query: str, last_topic: str) -> str:
         text = query.lower()
-        scores = {t: 0 for t in self.TOPIC_KEYWORDS}
-        for topic, kws in self.TOPIC_KEYWORDS.items():
+        scores = {t: 0 for t in self.topic_keywords}
+        for topic, kws in self.topic_keywords.items():
             for kw in kws:
                 if kw.lower() in text:
                     scores[topic] += 1
         best = max(scores, key=scores.get)
         if scores[best] == 0:
-            return last_topic or "factor_listing"
+            return last_topic or self.default_topic
         return best
 
     def extract_numbers(self, query: str) -> list[int]:
@@ -192,7 +197,7 @@ class IntentAgent:
             scores["CHECK_ANSWER"] = scores.get("CHECK_ANSWER", 0) + 5
 
         chosen_name = Intent.EXPLAIN.name
-        for name in self.INTENT_PRIORITY:
+        for name in self.intent_priority:
             if scores.get(name, 0) > 0:
                 chosen_name = name
                 break
@@ -217,7 +222,7 @@ class IntentAgent:
             normalized_query=normalized_query,
             intent=best_intent,
             topic=best_topic,
-            section=SECTION_TOPIC_MAP.get(best_topic, "4.1"),
+            section=self.section_topic_map.get(best_topic, "4.1"),
             numbers=numbers,
             method_requested=method,
             is_word_problem=(

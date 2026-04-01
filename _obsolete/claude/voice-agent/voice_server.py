@@ -38,7 +38,7 @@ from urllib.parse import parse_qs, urlparse
 from dotenv import load_dotenv
 load_dotenv()
 
-log = logging.getLogger("nie.voice_server")
+log = logging.getLogger("kanithan.voice_server")
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s — %(message)s"
@@ -82,7 +82,7 @@ class VoiceSession:
             chapter=self.chapter,
             subject=self.subject,
         )
-
+``
         # Initialize voice I/O
         self._voice_manager = VoiceIOManager(
             district=self.district,
@@ -374,7 +374,7 @@ async def run_server(host: str = "0.0.0.0", port: int = 8765,
 def main():
     import argparse
     parser = argparse.ArgumentParser(
-        description="NIE Tamil Math Tutor — Voice WebSocket Server")
+        description="Kanithan AI — Voice WebSocket Server")
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--ssl-cert", default=None)

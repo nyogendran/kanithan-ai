@@ -16,9 +16,9 @@ from src.config import (
     EMBED_MODEL,
     MIN_CHUNK_CHARS,
 )
-from .vector_store import ChunkMetadata, NIEVectorStore, TamilEmbedder
+from .vector_store import ChunkMetadata, CurriculumVectorStore, TamilEmbedder
 
-log = logging.getLogger("nie.ingestion")
+log = logging.getLogger("kanithan.ingestion")
 
 OCR_LANG = "tam+eng"                        # Tesseract: Tamil + English digits
 
@@ -71,13 +71,13 @@ def tscii_to_unicode(raw: str) -> str:
 
 
 def normalize_tamil(text: str) -> str:
-    """Apply SL Tamil → NIE standard normalization."""
+    """Apply SL Tamil -> curriculum standard normalization."""
     for variant, standard in SL_TAMIL_MATH_NORMALIZATION.items():
         text = text.replace(variant, standard)
     return text
 
 
-NIE_SECTION_PATTERNS = {
+CURRICULUM_SECTION_PATTERNS = {
     r"4\s*\.\s*1\b": ("4.1", "divisibility_rules", 1),
     r"4\s*\.\s*2\b": ("4.2", "factor_listing", 2),
     r"4\s*\.\s*3\b": ("4.3", "prime_factorization", 2),
@@ -92,7 +92,7 @@ NIE_SECTION_PATTERNS = {
     r"சிந்தனைக்கு": ("challenge", "word_problem", 3),
 }
 
-NIE_DIAGRAM_KEYWORDS = {
+CURRICULUM_DIAGRAM_KEYWORDS = {
     "factor_tree": ["காரணி மரம்", "மரம்", "factor tree"],
     "division_ladder": ["வகுத்தல் ஏணி", "ஏணி", "வகுத்தல் முறை", "division"],
     "cell_diagram": ["கலத்தின்", "செல்", "cell diagram", "உயிரணு"],
@@ -102,7 +102,7 @@ NIE_DIAGRAM_KEYWORDS = {
     "factor_pairs": ["ஜோடி", "pair", "காரணி ஜோடி"],
 }
 
-NIE_TERM_GLOSSARY = {
+CURRICULUM_TERM_GLOSSARY = {
     "காரணி": "factor",
     "மடங்கு": "multiple",
     "இலக்கச் சுட்டி": "digit_sum",
@@ -123,9 +123,9 @@ NIE_TERM_GLOSSARY = {
 
 class PDFExtractor:
     """
-    Extracts text from NIE Tamil PDFs.
+    Extracts text from curriculum Tamil PDFs.
     Handles three cases:
-    1. Unicode Tamil PDF (modern NIE PDFs) — direct extract
+    1. Unicode Tamil PDF (modern curriculum PDFs) — direct extract
     2. TSCII-encoded PDF — decode via TSCII_TABLE
     3. Image-based PDF — OCR via Tesseract with Tamil language pack
     """
@@ -227,18 +227,18 @@ class PDFExtractor:
             page = doc[pdf_idx]
             text = self.extract_page_text(page, encoding)
 
-            # Detect NIE page number from text
-            nie_page = self._detect_nie_page_number(text, pdf_idx)
+            # Detect textbook page number from text
+            textbook_page = self._detect_textbook_page_number(text, pdf_idx)
 
-            if nie_page and (start_page <= nie_page <= end_page):
+            if textbook_page and (start_page <= textbook_page <= end_page):
                 results.append({
-                    "page_num": nie_page,
+                    "page_num": textbook_page,
                     "pdf_page_index": pdf_idx,
                     "text": text,
                     "encoding": encoding,
                     "char_count": len(text),
                 })
-            elif not nie_page and pdf_idx >= start_page - 2:
+            elif not textbook_page and pdf_idx >= start_page - 2:
                 # Fallback: include by index estimate
                 if pdf_idx <= end_page + 2:
                     results.append({
@@ -253,8 +253,8 @@ class PDFExtractor:
         log.info(f"Extracted {len(results)} pages from {pdf_path.name}")
         return results
 
-    def _detect_nie_page_number(self, text: str, fallback_idx: int) -> Optional[int]:
-        """Find NIE textbook page number embedded in text."""
+    def _detect_textbook_page_number(self, text: str, fallback_idx: int) -> Optional[int]:
+        """Find textbook page number embedded in text."""
         patterns = [
             r"(?:^|\n)\s*(\d{1,3})\s*(?:\n|$)",    # standalone line
             r"இலவசப் பாடநூல்\s*(\d+)",               # footer pattern
@@ -274,11 +274,11 @@ class SemanticChunker:
     Splits extracted text into semantically meaningful chunks.
 
     Strategy:
-    1. Detect NIE structural boundaries (section headings, exercises, examples)
+    1. Detect curriculum structural boundaries (section headings, exercises, examples)
     2. Split at boundaries first (structural chunking)
     3. Sub-split large structural chunks by token count
     4. Apply overlap between consecutive sub-chunks
-    5. Enrich each chunk with metadata (topic, difficulty, NIE terms, diagrams)
+    5. Enrich each chunk with metadata (topic, difficulty, curriculum terms, diagrams)
     """
 
     def __init__(self, grade: int, chapter: int, subject: str):
@@ -310,7 +310,7 @@ class SemanticChunker:
         return final_chunks
 
     def _structural_split(self, text: str, pages: list[dict]) -> list[dict]:
-        """Split text at NIE section boundaries."""
+        """Split text at curriculum section boundaries."""
         chunks = []
         current = {
             "text": "", "section": f"{self.chapter}.0",
@@ -331,7 +331,7 @@ class SemanticChunker:
         lines = text.splitlines()
         for line in lines:
             matched = False
-            for pattern, (sec, topic, diff) in NIE_SECTION_PATTERNS.items():
+            for pattern, (sec, topic, diff) in CURRICULUM_SECTION_PATTERNS.items():
                 if re.search(pattern, line):
                     if len(current["text"].strip()) > MIN_CHUNK_CHARS:
                         chunks.append(dict(current))
@@ -395,9 +395,9 @@ class SemanticChunker:
                           source_file: str, sub_idx: int,
                           total_subs: int) -> ChunkMetadata:
         """Extract rich metadata from chunk content."""
-        nie_terms = [term for term in NIE_TERM_GLOSSARY
+        curriculum_terms = [term for term in CURRICULUM_TERM_GLOSSARY
                      if term in text]
-        diagrams = [dtype for dtype, keywords in NIE_DIAGRAM_KEYWORDS.items()
+        diagrams = [dtype for dtype, keywords in CURRICULUM_DIAGRAM_KEYWORDS.items()
                     if any(kw in text for kw in keywords)]
         has_numbers = bool(re.search(r'\b\d+\b', text))
         checksum = hashlib.sha256(text.encode()).hexdigest()
@@ -425,7 +425,7 @@ class SemanticChunker:
             page_end=sc.get("page_end", 0),
             prerequisites=prereq_map.get(sc["topic"], []),
             diagram_types=diagrams,
-            nie_terms=nie_terms,
+            curriculum_terms=curriculum_terms,
             has_numbers=has_numbers,
             is_answer_scheme=False,
             language="tamil",
@@ -445,7 +445,7 @@ class IngestionPipeline:
     def __init__(self):
         self.extractor = PDFExtractor()
         self.embedder = TamilEmbedder()
-        self.store = NIEVectorStore(persist_path=CHROMA_PATH)
+        self.store = CurriculumVectorStore(persist_path=CHROMA_PATH)
 
     def ingest_textbook(self, pdf_path: Path, grade: int, chapter: int,
                         subject: str, start_page: int = 1,
@@ -482,7 +482,7 @@ class IngestionPipeline:
 
     def ingest_answer_scheme(self, pdf_path: Path, grade: int,
                               chapter: int) -> int:
-        """Ingest NIE marking scheme / answer scheme separately."""
+        """Ingest curriculum marking scheme / answer scheme separately."""
         log.info(f"=== Ingesting answer scheme: {pdf_path.name} ===")
 
         pages = self.extractor.extract_pdf(pdf_path)
@@ -502,7 +502,7 @@ class IngestionPipeline:
                 section=str(chapter), topic="answer_scheme",
                 chunk_type="answer_scheme", difficulty=3,
                 page_start=page["page_num"], page_end=page["page_num"],
-                prerequisites=[], diagram_types=[], nie_terms=[],
+                prerequisites=[], diagram_types=[], curriculum_terms=[],
                 has_numbers=bool(re.search(r'\d', text)),
                 is_answer_scheme=True, language="tamil",
                 source_file=pdf_path.name,
@@ -522,7 +522,7 @@ class IngestionPipeline:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="NIE Curriculum Ingestion Pipeline")
+        description="Kanithan Curriculum Ingestion Pipeline")
     sub = parser.add_subparsers(dest="command")
 
     p_ingest = sub.add_parser("ingest", help="Ingest textbook PDF")

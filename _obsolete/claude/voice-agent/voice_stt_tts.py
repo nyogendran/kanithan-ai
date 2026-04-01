@@ -36,7 +36,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-log = logging.getLogger("nie.stt_tts")
+log = logging.getLogger("kanithan.stt_tts")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # STT CONFIG
@@ -78,8 +78,8 @@ NIE_MATH_ADAPTATION_PHRASES = [
     # Core Chapter 4 terms
     "காரணி", "காரணிகள்", "மடங்கு", "மடங்குகள்",
     "இலக்கச் சுட்டி", "முதன்மை எண்", "முதன்மைக் காரணி",
-    "போ.கா.பெ.", "பொதுக் காரணிகளுட் பெரியது",
-    "போ.ம.சி.", "பொது மடங்குகளுட் சிறியது",
+    "பொ.கா.பெ.", "பொதுக் காரணிகளுட் பெரியது",
+    "பொ.ம.சி.", "பொது மடங்குகளுட் சிறியது",
     "வகுபடும்", "வகுபடாது", "மீதி",
     "காரணி மரம்", "வகுத்தல் ஏணி",
     # Numbers
@@ -96,8 +96,8 @@ NIE_MATH_ADAPTATION_PHRASES = [
 
 # Phrase boosts by context
 CONTEXT_PHRASE_BOOSTS = {
-    "hcf": ["போ.கா.பெ.", "பொதுக் காரணி", "வகுத்தல் முறை"],
-    "lcm": ["போ.ம.சி.", "பொது மடங்கு", "மடங்கு கோடு"],
+    "hcf": ["பொ.கா.பெ.", "பொதுக் காரணி", "வகுத்தல் முறை"],
+    "lcm": ["பொ.ம.சி.", "பொது மடங்கு", "மடங்கு கோடு"],
     "prime": ["முதன்மை எண்", "முதன்மைக் காரணி", "காரணி மரம்"],
     "divisibility": ["இலக்கச் சுட்டி", "வகுபடும்", "மீதி"],
 }
@@ -149,8 +149,8 @@ DIALECT_TO_NIE_MAP = {
     "வகுத்தல்க்கு": "வகுத்தல் மூலம்",
     # Colombo code-switching
     "factor காண்க": "காரணி காண்க",
-    "HCF காண்க": "போ.கா.பெ. காண்க",
-    "LCM காண்க": "போ.ம.சி. காண்க",
+    "HCF காண்க": "பொ.கா.பெ. காண்க",
+    "LCM காண்க": "பொ.ம.சி. காண்க",
     "find பண்க": "காண்க",
     "calculate பண்க": "கணக்கிடு",
     "factor ஆனது": "காரணி ஆகும்",
@@ -256,7 +256,7 @@ class MathTextNormalizer:
     - Number word → digit: "நூற்று இருபத்தி ஆறு" → "126"
     - ASR mistakes on numbers: "72 உம் ஒன்று ஆறு" → "72 உம் 16"
     - Operator normalization: "பெருக்கல்" → "×"
-    - NIE abbreviation expansion: "போ.கா.பெ." preserved, "HCF" → "போ.கா.பெ."
+    - NIE abbreviation expansion: "பொ.கா.பெ." preserved, "HCF" → "பொ.கா.பெ."
     """
 
     # In order of length (longest first for greedy match)
@@ -283,8 +283,8 @@ class MathTextNormalizer:
     }
 
     ABBREVIATION_FIXES = {
-        "HCF": "போ.கா.பெ.", "GCD": "போ.கா.பெ.",
-        "LCM": "போ.ம.சி.", "LCF": "போ.ம.சி.",  # common ASR mishearing
+        "HCF": "பொ.கா.பெ.", "GCD": "பொ.கா.பெ.",
+        "LCM": "பொ.ம.சி.", "LCF": "பொ.ம.சி.",  # common ASR mishearing
         "factor": "காரணி", "factors": "காரணிகள்",
         "multiple": "மடங்கு",
         "prime": "முதன்மை",
@@ -498,7 +498,7 @@ class WhisperOfflineSTT:
                     tmp_path,
                     language=language,
                     task="transcribe",
-                    initial_prompt="காரணி மடங்கு இலக்கச் சுட்டி போ.கா.பெ. போ.ம.சி.",
+                    initial_prompt="காரணி மடங்கு இலக்கச் சுட்டி பொ.கா.பெ. பொ.ம.சி.",
                     fp16=False,  # CPU mode
                 )
             )
@@ -667,7 +667,7 @@ class MathSSMLBuilder:
     Examples:
     "72" → "எழுபத்தி இரண்டு"
     "36 = 2 × 2 × 3 × 3" → "முப்பத்தி ஆறு = இரண்டு × இரண்டு × மூன்று × மூன்று"
-    "போ.கா.பெ." → "பொதுக் காரணிகளுட் பெரியது"
+    "பொ.கா.பெ." → "பொதுக் காரணிகளுட் பெரியது"
     "84 இன் காரணிகள்" → reads "எண்பத்தி நான்கு இன் காரணிகள்"
     """
 
@@ -694,8 +694,8 @@ class MathSSMLBuilder:
 
     # Text replacements for natural reading
     TEXT_SUBSTITUTIONS = {
-        "போ.கா.பெ.": "பொதுக் காரணிகளுட் பெரியது",
-        "போ.ம.சி.": "பொது மடங்குகளுட் சிறியது",
+        "பொ.கா.பெ.": "பொதுக் காரணிகளுட் பெரியது",
+        "பொ.ம.சி.": "பொது மடங்குகளுட் சிறியது",
         "÷": "வகுத்தல்",
         "×": "பெருக்கல்",
         "=": "சமம்",
@@ -1094,7 +1094,7 @@ async def cli_test():
     if args.test_ssml:
         builder = MathSSMLBuilder()
         tests = [
-            "72 உம் 108 உம் ஆகிய எண்களின் போ.கா.பெ. காண்க",
+            "72 உம் 108 உம் ஆகிய எண்களின் பொ.கா.பெ. காண்க",
             "84 = 2 × 2 × 3 × 7 ஆகும்",
             "36 இன் காரணிகள்: 1, 2, 3, 4, 6, 9, 12, 18, 36",
         ]

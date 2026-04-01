@@ -51,7 +51,7 @@
     </div>
     <div class="vad-detail">
       <div class="phase">How VAD solves student pauses mid-sentence:</div>
-      The core problem: a Grade 7 student says "72 உம் 108 உம்..." then pauses 1.5s while thinking "...ஆகிய எண்களின் போ.கா.பெ. காண்க". Without intelligent VAD, a simple silence timeout cuts off mid-sentence.
+      The core problem: a Grade 7 student says "72 உம் 108 உம்..." then pauses 1.5s while thinking "...ஆகிய எண்களின் பொ.கா.பெ. காண்க". Without intelligent VAD, a simple silence timeout cuts off mid-sentence.
       <div class="timeline">
         <span class="ts ts-speak">Speech detected</span><span class="ts-arrow">→</span>
         <span class="ts ts-pause">Pause ≤ 2.5s</span><span class="ts-arrow">→</span>
@@ -90,7 +90,7 @@
       <div class="box b-gray">Offline fallback<div class="sub">2G/3G resilient</div></div>
     </div>
     <div class="detail">
-      Speech Adaptation phrases injected to Google STT: காரணி, மடங்கு, இலக்கச் சுட்டி, போ.கா.பெ., போ.ம.சி., முதன்மை எண் — prevents ASR mishearing math vocabulary as common words.<br>
+      Speech Adaptation phrases injected to Google STT: காரணி, மடங்கு, இலக்கச் சுட்டி, பொ.கா.பெ., பொ.ம.சி., முதன்மை எண் — prevents ASR mishearing math vocabulary as common words.<br>
       On-device path activates automatically when network RTT &gt; 3000ms or signal strength &lt; 2G.
     </div>
   </div>
@@ -116,7 +116,7 @@
       Batticaloa: distinct phonology → vowel mapping, verb form normalization<br>
       Estate: Malayalam borrowings, shortened forms → full NIE term restoration<br>
       Colombo: code-switching → strip English math terms, replace with NIE Tamil<br>
-      Math term normalization: "HCF காண்க" → "போ.கா.பெ. காண்க", "factor" → "காரணி"
+      Math term normalization: "HCF காண்க" → "பொ.கா.பெ. காண்க", "factor" → "காரணி"
     </div>
   </div>
 </div>
@@ -184,7 +184,7 @@
       <div class="box b-gray">On-device cache<div class="sub">common phrases pre-synth</div></div>
     </div>
     <div class="detail">
-      SSML handles math: 36 → "முப்பத்தி ஆறு", × → "பெருக்கல்", ÷ → "வகுத்தல்", போ.கா.பெ. → "பொதுக் காரணிகளுட் பெரியது".<br>
+      SSML handles math: 36 → "முப்பத்தி ஆறு", × → "பெருக்கல்", ÷ → "வகுத்தல்", பொ.கா.பெ. → "பொதுக் காரணிகளுட் பெரியது".<br>
       Tutor speaks in chunks — first explanation sentence plays while rest is synthesising (streaming TTS).
     </div>
   </div>

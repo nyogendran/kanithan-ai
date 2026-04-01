@@ -17,19 +17,23 @@ from functools import reduce
 from math import gcd, lcm
 from typing import Optional
 
+from src.chapters.base import ChapterTopicPack, DiagramAdapter
+from src.chapters.registry import get_chapter_plugin
 from ..models import DiagramSpec, QueryContext, RetrievedContext
 
 
 class DrawingAgent:
-    _DIAGRAMMABLE_TOPICS: set[str] = {
-        "factor_listing", "factor_listing_pair_method",
-        "prime_factorization", "prime_factorization_tree", "prime_factorization_division",
-        "hcf", "hcf_method_1_list", "hcf_method_2_prime", "hcf_method_3_division",
-        "lcm", "lcm_prime_method", "lcm_division_method",
-        "divisibility_rules", "digit_sum",
-    }
-
-    _LCM_TOPICS: set[str] = {"lcm", "lcm_prime_method", "lcm_division_method"}
+    def __init__(
+        self,
+        topic_pack: ChapterTopicPack | None = None,
+        diagram_adapter: DiagramAdapter | None = None,
+        chapter: int = 4,
+    ) -> None:
+        plugin = get_chapter_plugin(chapter)
+        pack = topic_pack or plugin.topic_pack
+        self._diagrammable_topics = set(pack.diagrammable_topics)
+        self._lcm_topics = set(pack.lcm_topics)
+        self._diagram_adapter = diagram_adapter or plugin.diagram_adapter
 
     def should_draw(
         self,
@@ -48,10 +52,10 @@ class DrawingAgent:
                 if any(kw in query.lower() for kw in keywords):
                     return True
         if expected_method_number in (1, 2, 3):
-            if (topic or "").lower() in self._DIAGRAMMABLE_TOPICS:
+            if (topic or "").lower() in self._diagrammable_topics:
                 return True
             for chunk in retrieved_chunks:
-                if (chunk.get("topic") or "").lower() in self._DIAGRAMMABLE_TOPICS:
+                if (chunk.get("topic") or "").lower() in self._diagrammable_topics:
                     return True
             if intent in {"EXPLAIN", "SHOW_METHOD", "EXERCISE_REQUEST"}:
                 return True
@@ -76,10 +80,11 @@ class DrawingAgent:
         ):
             return None
         nums = ctx.numbers or self._extract_numbers(query)
+        nums = self._diagram_adapter.normalize_numbers(nums, topic)
         if not nums:
             return None
 
-        is_lcm = (topic or "").lower() in self._LCM_TOPICS
+        is_lcm = (topic or "").lower() in self._lcm_topics
 
         desired_triggers: set[str] = set()
         if is_lcm:

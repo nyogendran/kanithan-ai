@@ -90,8 +90,42 @@ class DatabaseManager:
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS voice_sessions (
+                session_key TEXT PRIMARY KEY,
+                student_id TEXT NOT NULL,
+                state TEXT NOT NULL DEFAULT 'listening',
+                pending_question TEXT,
+                prereq_topic TEXT,
+                turns INTEGER NOT NULL DEFAULT 0,
+                exercise_count INTEGER NOT NULL DEFAULT 0,
+                diagnostic_queue TEXT,
+                diagnostic_results TEXT,
+                original_question TEXT,
+                current_probe TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
             """
         )
+        self._conn.commit()
+        self._migrate_voice_sessions()
+
+    def _migrate_voice_sessions(self) -> None:
+        """Add diagnostic columns to voice_sessions if upgrading from Phase 1."""
+        cur = self._conn.execute("PRAGMA table_info(voice_sessions)")
+        existing = {row["name"] for row in cur.fetchall()}
+        new_cols = {
+            "diagnostic_queue": "TEXT",
+            "diagnostic_results": "TEXT",
+            "original_question": "TEXT",
+            "current_probe": "TEXT",
+        }
+        for col, typ in new_cols.items():
+            if col not in existing:
+                self._conn.execute(
+                    f"ALTER TABLE voice_sessions ADD COLUMN {col} {typ}"
+                )
         self._conn.commit()
 
     def close(self) -> None:
@@ -280,3 +314,74 @@ class DatabaseManager:
             (status, teacher_id, annotation, now, queue_id),
         )
         self._conn.commit()
+
+    # ── Voice session persistence ──
+
+    def get_or_create_voice_session(
+        self, session_key: str, student_id: str
+    ) -> dict[str, Any]:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT * FROM voice_sessions WHERE session_key = ?",
+                (session_key,),
+            ).fetchone()
+            if row:
+                return {k: row[k] for k in row.keys()}
+            now = datetime.now().isoformat()
+            self._conn.execute(
+                """
+                INSERT INTO voice_sessions
+                    (session_key, student_id, state, pending_question,
+                     prereq_topic, turns, exercise_count,
+                     diagnostic_queue, diagnostic_results, original_question,
+                     current_probe, created_at, updated_at)
+                VALUES (?, ?, 'listening', NULL, NULL, 0, 0,
+                        NULL, NULL, NULL, NULL, ?, ?)
+                """,
+                (session_key, student_id, now, now),
+            )
+            self._conn.commit()
+            return {
+                "session_key": session_key,
+                "student_id": student_id,
+                "state": "listening",
+                "pending_question": None,
+                "prereq_topic": None,
+                "turns": 0,
+                "exercise_count": 0,
+                "diagnostic_queue": None,
+                "diagnostic_results": None,
+                "original_question": None,
+                "current_probe": None,
+                "created_at": now,
+                "updated_at": now,
+            }
+
+    def save_voice_session(self, session_key: str, updates: dict[str, Any]) -> None:
+        with self._lock:
+            now = datetime.now().isoformat()
+            self._conn.execute(
+                """
+                UPDATE voice_sessions
+                SET state = ?, pending_question = ?, prereq_topic = ?,
+                    turns = ?, exercise_count = ?,
+                    diagnostic_queue = ?, diagnostic_results = ?,
+                    original_question = ?, current_probe = ?,
+                    updated_at = ?
+                WHERE session_key = ?
+                """,
+                (
+                    updates.get("state", "listening"),
+                    updates.get("pending_question"),
+                    updates.get("prereq_topic"),
+                    updates.get("turns", 0),
+                    updates.get("exercise_count", 0),
+                    updates.get("diagnostic_queue"),
+                    updates.get("diagnostic_results"),
+                    updates.get("original_question"),
+                    updates.get("current_probe"),
+                    now,
+                    session_key,
+                ),
+            )
+            self._conn.commit()

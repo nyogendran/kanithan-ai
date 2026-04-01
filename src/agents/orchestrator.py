@@ -1,32 +1,35 @@
 """
-OrchestratorAgent — coordinates modular agents for the NIE Tamil math tutor.
+OrchestratorAgent — coordinates modular agents for the Kanithan Tamil math tutor.
 
-Companion agents without standalone modules (Exercise, verification, mastery,
-sentiment, progress, HITL) are defined in this file for a single import surface.
+All agents are imported from their standalone modules in src/agents/.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import random
 import sys
 import time
 from dataclasses import asdict, replace
-from functools import reduce
-from math import gcd, lcm
 from pathlib import Path
 from typing import Any, Iterator
 
 from dotenv import load_dotenv
 
 from src import config
+from src.chapters.registry import get_chapter_plugin
+from src.agents.answer_verifier import AnswerVerifierAgent
 from src.agents.dialect_agent import DialectAgent
 from src.agents.drawing_agent import DrawingAgent
+from src.agents.exercise_agent import ExerciseAgent
+from src.agents.hitl_agent import HITLAgent
 from src.agents.input_parser import InputParserAgent
 from src.agents.intent_agent import IntentAgent
+from src.agents.mastery_agent import MasteryAgent
 from src.agents.math_verifier import MathVerifierAgent
+from src.agents.progress_agent import ProgressAgent
 from src.agents.retrieval_agent import RetrievalAgent
+from src.agents.sentiment_agent import SentimentAgent
 from src.agents.teaching_agent import TeachingAgent
 from src.llm_client import LLMClient
 from src.llm_errors import format_llm_error_for_user
@@ -46,366 +49,6 @@ from src.storage import DatabaseManager
 
 load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
 
-SOCRATIC_HINTS: dict[str, str] = {
-    "used_lcm_for_hcf": "நீங்கள் மடங்குகளைக் காண்கிறீர்கள். 'அதிகூடிய பொதிகள்' என்றால் வகுபடுதல் தேவையா அல்லது மடங்கு தேவையா?",
-    "used_hcf_for_lcm": "நீங்கள் காரணிகளைக் காண்கிறீர்கள். 'முதல் சந்திப்பு' என்றால் பொது மடங்கு வேண்டுமா?",
-    "wrong_digit_sum": "இலக்கச் சுட்டி இரண்டு இலக்கமாக வந்தால் மீண்டும் கூட வேண்டும். உங்கள் விடையை மீண்டும் சோதியுங்கள்.",
-    "incomplete_factors": "காரணிகளை ஜோடி முறையில் தேடுங்கள். 1 × ? = எண், 2 × ? = எண்... என்று ஒவ்வொரு ஜோடியையும் சோதியுங்கள்.",
-    "prime_missed": "உங்கள் காரணி மரம் இன்னும் தொடர வேண்டும். கடைசி விடை 1 ஆகும் வரை வகுக்க வேண்டும்.",
-    "computation_error": "உங்கள் கணக்கீட்டை மீண்டும் சோதியுங்கள். ஒரு படி பார்ப்போமா?",
-    "no_answer": "பதிலை உள்ளிடவும்.",
-    "generic": "உங்கள் முறை சரியாக உள்ளது. ஆனால் ஒரு படியில் சிறிய பிழை உள்ளது. மீண்டும் தொடக்கத்திலிருந்து படிப்படியாக முயற்சி செய்வீர்களா?",
-}
-
-
-class ExerciseAgent:
-    """NIE-style exercise generation at adaptive difficulty."""
-
-    def generate(
-        self, ctx: QueryContext, student: StudentProfile
-    ) -> ExerciseBundle | None:
-        if ctx.intent != Intent.EXERCISE_REQUEST:
-            return None
-        topic = ctx.topic if ctx.topic else (student.last_topic or "factor_listing")
-        difficulty = student.get_difficulty_ceiling()
-        generators = {
-            "divisibility_rules": self._gen_divisibility,
-            "digit_sum": self._gen_digit_sum,
-            "factor_listing": self._gen_factors,
-            "prime_factorization": self._gen_prime_factors,
-            "hcf": self._gen_hcf,
-            "lcm": self._gen_lcm,
-            "word_problem": self._gen_word_problem,
-        }
-        gen = generators.get(topic, self._gen_factors)
-        return gen(difficulty)
-
-    def _gen_divisibility(self, difficulty: int) -> ExerciseBundle:
-        divisor = random.choice([2, 3, 6, 9, 4] if difficulty > 1 else [2, 3, 9])
-        numbers = random.sample(range(100, 5000), 6)
-        correct = [n for n in numbers if n % divisor == 0]
-        return ExerciseBundle(
-            question_ta=(
-                f"பின்வரும் எண்களில் {divisor} ஆல் மீதியின்றி வகுபடும் எண்களை வகுக்காமல் தெரிவு செய்க:\n"
-                f"{', '.join(map(str, numbers))}"
-            ),
-            numbers=numbers,
-            difficulty=difficulty,
-            topic="divisibility_rules",
-            hint_ta=f"வகுபடும் விதி: {self._divisibility_rule(divisor)}",
-            expected_steps=[f"ஒவ்வொரு எண்ணுக்கும் {divisor} ஆல் வகுபடும் விதியை பயன்படுத்துக"],
-            answer=correct,
-        )
-
-    def _divisibility_rule(self, d: int) -> str:
-        rules = {
-            2: "ஒன்றினிட இலக்கம் இரட்டை எண் ஆயின் 2 ஆல் வகுபடும்",
-            3: "இலக்கச் சுட்டி 3 ஆல் வகுபடும் ஆயின் 3 ஆல் வகுபடும்",
-            4: "கடைசி இரண்டு இலக்கங்கள் 4 ஆல் வகுபடும் ஆயின் 4 ஆல் வகுபடும்",
-            5: "ஒன்றினிட இலக்கம் 0 அல்லது 5 ஆயின் 5 ஆல் வகுபடும்",
-            6: "2 ஆலும் 3 ஆலும் வகுபடும் ஆயின் 6 ஆல் வகுபடும்",
-            9: "இலக்கச் சுட்டி 9 ஆயின் 9 ஆல் வகுபடும்",
-        }
-        return rules.get(d, "")
-
-    def _gen_digit_sum(self, difficulty: int) -> ExerciseBundle:
-        numbers = random.sample(range(10, 9999), 5)
-
-        def _digit_sum(n: int) -> int:
-            while n >= 10:
-                n = sum(int(d) for d in str(n))
-            return n
-
-        return ExerciseBundle(
-            question_ta=f"பின்வரும் எண்களின் இலக்கச் சுட்டியைக் காண்க:\n{', '.join(map(str, numbers))}",
-            numbers=numbers,
-            difficulty=1,
-            topic="digit_sum",
-            hint_ta="ஒவ்வொரு எண்ணின் இலக்கங்களையும் கூட்டுக. தனி இலக்கம் வரும் வரை திரும்பவும் கூட்டவும்.",
-            expected_steps=[
-                "ஒவ்வொரு இலக்கத்தையும் தனியாக எழுதுக",
-                "அனைத்தையும் கூட்டுக",
-                "விடை இரண்டு இலக்கமாக இருந்தால் மீண்டும் கூட்டுக",
-            ],
-            answer={n: _digit_sum(n) for n in numbers},
-        )
-
-    def _gen_factors(self, difficulty: int) -> ExerciseBundle:
-        pool = {1: [12, 18, 24, 36], 2: [48, 60, 72, 84, 96], 3: [120, 150, 180, 204]}
-        n = random.choice(pool.get(difficulty, pool[2]))
-        factors = sorted([i for i in range(1, n + 1) if n % i == 0])
-        return ExerciseBundle(
-            question_ta=f"{n} இன் அனைத்து காரணிகளையும் காண்க.",
-            numbers=[n],
-            difficulty=difficulty,
-            topic="factor_listing",
-            hint_ta="ஜோடி பெருக்க முறை: 1 × ?, 2 × ?, 3 × ? ... என்று காண்க",
-            expected_steps=[
-                f"{n} = 1 × {n}",
-                "ஒவ்வொரு ஜோடியும் எழுதுக",
-                "அனைத்து காரணிகளை ஏறுவரிசையில் எழுதுக",
-            ],
-            answer=factors,
-        )
-
-    def _gen_prime_factors(self, difficulty: int) -> ExerciseBundle:
-        pool = {1: [12, 18, 30], 2: [48, 60, 84, 90], 3: [120, 168, 210, 252]}
-        n = random.choice(pool.get(difficulty, pool[2]))
-
-        def prime_fact(x: int) -> list[int]:
-            factors, d = [], 2
-            while x > 1:
-                while x % d == 0:
-                    factors.append(d)
-                    x //= d
-                d += 1
-            return factors
-
-        primes = prime_fact(n)
-        return ExerciseBundle(
-            question_ta=f"{n} ஐ முதன்மைக் காரணிகளின் பெருக்கமாக எழுதுக.",
-            numbers=[n],
-            difficulty=difficulty,
-            topic="prime_factorization",
-            hint_ta="மிகச் சிறிய முதன்மை எண்ணான 2 இலிருந்து தொடங்கி வகுத்தல் ஏணி வரையுங்கள்",
-            expected_steps=[
-                f"{n} ÷ {primes[0]} = {n // primes[0]}",
-                "விடை 1 ஆகும் வரை தொடரவும்",
-                f"{n} = " + " × ".join(map(str, primes)),
-            ],
-            answer=" × ".join(map(str, primes)),
-        )
-
-    def _gen_hcf(self, difficulty: int) -> ExerciseBundle:
-        pairs = {
-            1: [(12, 18), (24, 36)],
-            2: [(48, 72), (60, 90), (84, 108)],
-            3: [(72, 108, 144), (36, 54, 90)],
-        }
-        nums = list(random.choice(pairs.get(difficulty, pairs[2])))
-        hcf_val = reduce(gcd, nums)
-        return ExerciseBundle(
-            question_ta=f"{', '.join(map(str, nums))} ஆகிய எண்களின் பொ.கா.பெ. காண்க.",
-            numbers=nums,
-            difficulty=difficulty,
-            topic="hcf",
-            hint_ta="வகுத்தல் முறை அல்லது முதன்மைக் காரணிகள் மூலம் காண்க",
-            expected_steps=[
-                "ஒவ்வொரு எண்ணையும் முதன்மைக் காரணிகளாக பகுக்கவும்",
-                "பொதுவான முதன்மைக் காரணிகளைக் காண்க",
-                "அவற்றை பெருக்குக",
-            ],
-            answer=hcf_val,
-        )
-
-    def _gen_lcm(self, difficulty: int) -> ExerciseBundle:
-        pairs = {1: [(2, 3), (4, 6)], 2: [(6, 8, 12), (4, 9, 12)], 3: [(8, 12, 18), (6, 10, 15)]}
-        nums = list(random.choice(pairs.get(difficulty, pairs[2])))
-        lcm_val = reduce(lcm, nums)
-        return ExerciseBundle(
-            question_ta=f"{', '.join(map(str, nums))} ஆகிய எண்களின் பொ.ம.சி. காண்க.",
-            numbers=nums,
-            difficulty=difficulty,
-            topic="lcm",
-            hint_ta="முதன்மைக் காரணிகளின் உயர் வலுவைப் பெருக்குக",
-            expected_steps=[
-                "ஒவ்வொரு எண்ணையும் முதன்மைக் காரணிகளாக பகுக்கவும்",
-                "ஒவ்வொரு முதன்மை எண்ணின் உயர் வலுவைத் தேர்வு செய்க",
-                "அவற்றை பெருக்குக",
-            ],
-            answer=lcm_val,
-        )
-
-    def _gen_word_problem(self, _difficulty: int) -> ExerciseBundle:
-        problems = [
-            {
-                "q": (
-                    "ஒரு கூடையில் 96 அப்பிள்களும் 60 ஆரஞ்சு பழங்களும் உள்ளன. இரு வகைப் பழங்களும் சம எண்ணிக்கையில் "
-                    "இருக்கும் வகையில் பொதிகளில் இடப்பட்டால் பெறக்கூடிய அதிகூடிய பொதிகளின் எண்ணிக்கை யாது?"
-                ),
-                "nums": [96, 60],
-                "answer": 12,
-                "topic": "hcf",
-                "hint": "சம பகிர்வு → பொ.கா.பெ. பயன்படுத்தவும்",
-            },
-            {
-                "q": (
-                    "இரண்டு மணிகள் முறையே 6 நிமிடங்கள், 8 நிமிடங்களுக்கு ஒரு முறை ஒலிக்கின்றன. காலை 8.00 மணிக்கு "
-                    "ஒருமித்து ஒலித்தால், அவை மீண்டும் எத்தனை மணிக்கு ஒருமித்து ஒலிக்கும்?"
-                ),
-                "nums": [6, 8],
-                "answer": "8.24 மணி",
-                "topic": "lcm",
-                "hint": "முதல் சந்திப்பு → பொ.ம.சி. பயன்படுத்தவும்",
-            },
-        ]
-        prob = random.choice(problems)
-        return ExerciseBundle(
-            question_ta=prob["q"],
-            numbers=prob["nums"],
-            difficulty=3,
-            topic=prob["topic"],
-            hint_ta=prob["hint"],
-            expected_steps=[
-                "தேவையான தகவல்களை எழுதுக",
-                "பொ.கா.பெ. அல்லது பொ.ம.சி. தீர்மானி",
-                "கணக்கிட்டு விடை எழுதுக",
-            ],
-            answer=prob["answer"],
-        )
-
-
-class AnswerVerifierAgent:
-    """LLM-assisted answer checking with JSON protocol."""
-
-    def __init__(self, model: str | None = None) -> None:
-        self.model = model or config.llm_fast_model()
-
-    def verify(
-        self,
-        llm: LLMClient,
-        ctx: QueryContext,
-        exercise: ExerciseBundle | None,
-        retrieved: RetrievedContext,
-        student: StudentProfile,
-    ) -> VerificationResult:
-        if ctx.intent != Intent.CHECK_ANSWER:
-            return VerificationResult()
-        ans = (ctx.student_answer or "").strip()
-        if not ans:
-            return VerificationResult(
-                is_correct=False,
-                socratic_hint_ta=SOCRATIC_HINTS["no_answer"],
-                error_type="no_answer",
-                skill_delta=0.0,
-            )
-
-        ctx_bits = "\n\n".join(
-            (c.get("content_ta") or "")[:1200] for c in retrieved.chunks[:3]
-        )
-        if exercise:
-            system = f"""நீங்கள் NIE Grade {student.grade} கணித மதிப்பீட்டு நிபுணர்.
-மாணவர் பதிலை ஒப்பிட்டுப் பகுப்பாய்வு செய்க.
-• நேரடியாக சரியான முழு விடையைச் சொல்லாதீர்கள்
-• JSON மட்டும் தரவும்
-
-கேள்வி: {exercise.question_ta}
-எதிர்பார்க்கப்படும் படிகள்: {json.dumps(exercise.expected_steps, ensure_ascii=False)}
-குறிப்பு விடை (உள்ளக மதிப்பீட்டுக்கு மட்டும்): {json.dumps(exercise.answer, ensure_ascii=False)}
-
-NIE சூழல்:
-{ctx_bits}
-
-JSON வடிவம்:
-{{
-  "is_correct": true/false,
-  "first_wrong_step": "string or null",
-  "error_type": "used_lcm_for_hcf|used_hcf_for_lcm|wrong_digit_sum|incomplete_factors|prime_missed|computation_error|generic|none",
-  "socratic_hint_ta": "வழிகாட்டும் கேள்வி (விடை சொல்லாமல்)",
-  "skill_delta": 0.1
-}}"""
-            user = f"மாணவர் பதில்: {ans}"
-        else:
-            system = f"""நீங்கள் NIE Grade {student.grade} கணித ஆசிரியர்.
-மாணவரின் பதில் கேள்விக்குச் சரியா என மதிப்பிடுக. JSON மட்டும்.
-சூழல்:\n{ctx_bits}
-JSON: {{"is_correct": bool, "error_type": "none|generic", "socratic_hint_ta": "...", "skill_delta": float}}"""
-            user = f"கேள்வி: {ctx.normalized_query}\nமாணவர் பதில்: {ans}"
-
-        data = llm.generate_json(self.model, system, user, temperature=0.1, max_tokens=400)
-        if not data:
-            is_ok = str(exercise.answer).strip() == ans if exercise and exercise.answer is not None else False
-            return VerificationResult(
-                is_correct=is_ok,
-                socratic_hint_ta=SOCRATIC_HINTS["generic"],
-                error_type="generic",
-                skill_delta=0.1 * (exercise.difficulty if exercise else 1) if is_ok else -0.05,
-            )
-
-        err = data.get("error_type", "generic")
-        hint = data.get("socratic_hint_ta") or SOCRATIC_HINTS.get(err, SOCRATIC_HINTS["generic"])
-        return VerificationResult(
-            is_correct=bool(data.get("is_correct", False)),
-            first_wrong_step=data.get("first_wrong_step"),
-            socratic_hint_ta=hint,
-            error_type=err,
-            skill_delta=float(data.get("skill_delta", -0.05)),
-        )
-
-
-class MasteryAgent:
-    """Skill updates from verification outcomes."""
-
-    def apply(
-        self,
-        student: StudentProfile,
-        ctx: QueryContext,
-        verification: VerificationResult | None,
-        exercise: ExerciseBundle | None,
-    ) -> None:
-        if ctx.intent != Intent.CHECK_ANSWER or verification is None:
-            return
-        topic = (exercise.topic if exercise else None) or ctx.topic or student.last_topic
-        if exercise:
-            student.update_skill(topic, verification.is_correct, exercise.difficulty)
-        if not verification.is_correct and verification.error_type:
-            student.last_error_type = verification.error_type
-
-
-class ProgressAgent:
-    """Per-turn progression metadata on the student profile."""
-
-    def record_turn(
-        self, student: StudentProfile, retrieved: RetrievedContext, query_ctx: QueryContext
-    ) -> None:
-        student.total_questions_asked += 1
-        if retrieved.chunks:
-            student.last_topic = retrieved.chunks[0].get("topic", "") or query_ctx.topic
-        elif query_ctx.topic:
-            student.last_topic = query_ctx.topic
-
-
-class SentimentAgent:
-    """Lightweight engagement / frustration heuristics."""
-
-    def analyze(self, raw_query: str, explanation_ta: str) -> SentimentSignal:
-        frustration_kw = ["புரியவில்லை", "கடினம்", "முடியவில்லை", "தவறு", "சோர்வு"]
-        encourage_kw = ["நன்றி", "புரிந்தது", "சரி", "thanks", "ok"]
-        q = raw_query.lower()
-        frustrated = any(k in raw_query for k in frustration_kw) or any(
-            k.lower() in q for k in ("hard", "difficult")
-        )
-        encourage = any(k in raw_query for k in encourage_kw)
-        engagement = 0.75 if explanation_ta else 0.5
-        if frustrated:
-            engagement = max(0.2, engagement - 0.35)
-        if encourage:
-            engagement = min(1.0, engagement + 0.15)
-        return SentimentSignal(
-            engagement_score=engagement,
-            confidence_level=0.55,
-            frustration_detected=frustrated,
-            encourage=encourage,
-        )
-
-
-class HITLAgent:
-    """Escalation rules for human-in-the-loop review."""
-
-    def evaluate(
-        self,
-        sentiment: SentimentSignal | None,
-        verification: VerificationResult | None,
-        query_ctx: QueryContext,
-    ) -> tuple[bool, str | None]:
-        if sentiment and sentiment.frustration_detected and sentiment.engagement_score < 0.35:
-            return True, "low_engagement_frustration"
-        if verification and verification.error_type in ("used_lcm_for_hcf", "used_hcf_for_lcm"):
-            return True, "systematic_concept_confusion"
-        if query_ctx.confidence < 0.15 and query_ctx.intent == Intent.UNKNOWN:
-            return True, "low_intent_confidence"
-        return False, None
-
 
 class OrchestratorAgent:
     def __init__(
@@ -417,23 +60,37 @@ class OrchestratorAgent:
         self.grade = grade
         self.chapter = chapter
         self.subject = subject
+        self.chapter_plugin = get_chapter_plugin(chapter)
+        self.topic_pack = self.chapter_plugin.topic_pack
 
         self.llm = LLMClient(backend=config.LLM_BACKEND)
         self.db = DatabaseManager()
         self.dialect_agent = DialectAgent()
-        self.intent_agent = IntentAgent()
+        self.intent_agent = IntentAgent(topic_pack=self.topic_pack, chapter=self.chapter)
         self.math_verifier = MathVerifierAgent()
         self.teaching = TeachingAgent(
             gemini_client=None,
             model=config.llm_teaching_model(),
         )
-        self.drawing_agent = DrawingAgent()
-        self.exercise_agent = ExerciseAgent()
-        self.answer_verifier = AnswerVerifierAgent()
+        self.drawing_agent = DrawingAgent(
+            topic_pack=self.topic_pack,
+            diagram_adapter=self.chapter_plugin.diagram_adapter,
+            chapter=self.chapter,
+        )
+        self.exercise_agent = ExerciseAgent(topic_pack=self.topic_pack, chapter=self.chapter)
+        gemini_client = (
+            self.llm.get_gemini_client()
+            if config.LLM_BACKEND == "gemini"
+            else None
+        )
+        self.answer_verifier = AnswerVerifierAgent(
+            gemini_client=gemini_client,
+            model=config.llm_fast_model(),
+        )
         self.mastery_agent = MasteryAgent()
         self.sentiment_agent = SentimentAgent()
         self.progress_agent = ProgressAgent()
-        self.hitl_agent = HITLAgent()
+        self.hitl_agent = HITLAgent(db=self.db)
         self.input_parser = InputParserAgent()
 
         self.use_vector_db = False
@@ -441,9 +98,9 @@ class OrchestratorAgent:
         self.embedder: Any = None
         try:
             import sentence_transformers  # noqa: F401
-            from src.ingestion.vector_store import NIEVectorStore, TamilEmbedder
+            from src.ingestion.vector_store import CurriculumVectorStore, TamilEmbedder
 
-            self.vector_store = NIEVectorStore()
+            self.vector_store = CurriculumVectorStore()
             self.embedder = TamilEmbedder()
             self.use_vector_db = True
         except Exception:
@@ -453,6 +110,10 @@ class OrchestratorAgent:
         self.retrieval = RetrievalAgent(
             vector_store=self.vector_store,
             embedder=self.embedder,
+            chapter=self.chapter,
+            corpus=self.topic_pack.corpus,
+            prerequisite_graph=self.topic_pack.prerequisite_graph,
+            topic_to_skill=self.topic_pack.topic_to_skill,
         )
 
     def _derive_expected_method(
@@ -461,10 +122,10 @@ class OrchestratorAgent:
         retrieved: RetrievedContext,
     ) -> tuple[int, str]:
         """
-        Decide which NIE method the TeachingAgent must follow.
+        Decide which curriculum method the TeachingAgent must follow.
         Priority:
         1) explicit method_requested from the student query
-        2) method_number/topic mapping from retrieved NIE chunks
+        2) method_number/topic mapping from retrieved curriculum chunks
         3) conservative fallback based on query topic
         """
         # 1) explicit request in query
@@ -477,20 +138,8 @@ class OrchestratorAgent:
             if req == "division":
                 return 3, "முறை III (வகுத்தல் ஏணி)"
 
-        # 2) derive from retrieved NIE chunks
-        topic_to_method: dict[str, tuple[int, str]] = {
-            # Factor methods (method_number not stored on these chunks)
-            "factor_listing_pair_method": (1, "முறை I (ஜோடி பெருக்கம் / காரணிப் பட்டியல்)"),
-            "prime_factorization_tree": (2, "முறை II (காரணி மரம் / முதன்மைக் காரணிகள்)"),
-            "prime_factorization_division": (3, "முறை III (வகுத்தல் ஏணி)"),
-            # HCF methods
-            "hcf_method_1_list": (1, "முறை I (காரணிப் பட்டியல் மூலம் பொ.கா.பெ.)"),
-            "hcf_method_2_prime": (2, "முறை II (முதன்மைக் காரணிகள் மூலம் பொ.கா.பெ.)"),
-            "hcf_method_3_division": (3, "முறை III (வகுத்தல் முறை மூலம் பொ.கா.பெ.)"),
-            # LCM methods
-            "lcm_prime_method": (1, "முறை I (முதன்மைக் காரணிகள் மூலம் பொ.ம.சி.)"),
-            "lcm_division_method": (2, "முறை II (வகுத்தல் ஏணி மூலம் பொ.ம.சி.)"),
-        }
+        # 2) derive from retrieved curriculum chunks
+        topic_to_method = self.topic_pack.method_topic_map
 
         for chunk in retrieved.chunks:
             mnum = chunk.get("method_number")
@@ -503,6 +152,19 @@ class OrchestratorAgent:
 
         # 3) fallback
         t = (query_ctx.topic or "").lower()
+        q = (query_ctx.normalized_query or query_ctx.raw_query or "").lower()
+        if t == "word_problem":
+            # Word-problem heuristic:
+            # - "max equal groups / அதி கூடிய பொதி" usually maps to HCF style.
+            # - "least/common cycle" usually maps to LCM style.
+            hcf_hints = self.topic_pack.hcf_word_problem_hints
+            lcm_hints = self.topic_pack.lcm_word_problem_hints
+            if any(h in q for h in hcf_hints):
+                return 3, "முறை III (வகுத்தல் ஏணி மூலம் பொ.கா.பெ.)"
+            if any(h in q for h in lcm_hints):
+                return 2, "முறை II (வகுத்தல் ஏணி மூலம் பொ.ம.சி.)"
+            if len(query_ctx.numbers or []) >= 2:
+                return 3, "முறை III (வகுத்தல் ஏணி மூலம் பொ.கா.பெ.)"
         if t == "lcm":
             return 2, "முறை II (வகுத்தல் ஏணி மூலம் பொ.ம.சி.)"
         if t == "hcf":
@@ -529,7 +191,7 @@ class OrchestratorAgent:
         student.district = district
 
         dialect, normalized = self.dialect_agent.detect_and_normalize(text, student.district)
-        register = self.dialect_agent.get_nie_register_guidance(student)
+        register = self.dialect_agent.get_curriculum_register_guidance(student)
         query_ctx = self.intent_agent.parse(
             text, normalized, dialect, student,
             student_answer=student_answer, exercise_topic=exercise_topic,
@@ -584,19 +246,34 @@ class OrchestratorAgent:
         verification: VerificationResult | None = None
         if query_ctx.intent == Intent.CHECK_ANSWER:
             verification = self.answer_verifier.verify(
-                self.llm, query_ctx, exercise, retrieved, student,
+                query_ctx, exercise, retrieved, student,
             )
 
-        self.progress_agent.record_turn(student, retrieved, query_ctx)
+        self.mastery_agent.record_session_context(
+            student, text, query_ctx.intent.value, query_ctx.topic or "",
+        )
         if verification is not None:
-            self.mastery_agent.apply(student, query_ctx, verification, exercise)
+            topic = (exercise.topic if exercise else None) or query_ctx.topic or student.last_topic
+            self.mastery_agent.update_skill(
+                student, topic or "unknown",
+                verification.is_correct,
+                exercise.difficulty if exercise else 1,
+                error_type=verification.error_type or "",
+            )
         self.db.save_student(student)
 
-        sentiment = self.sentiment_agent.analyze(text, teaching.explanation_ta if teaching else "")
-        hitl_flag, hitl_reason = self.hitl_agent.evaluate(sentiment, verification, query_ctx)
-
         elapsed_ms = (time.perf_counter() - t0) * 1000
-        summary = (teaching.explanation_ta[:500] if teaching else "") or (
+        sentiment = self.sentiment_agent.analyze(
+            student, text, int(elapsed_ms),
+            is_retry=False,
+            exercise_correct=verification.is_correct if verification else None,
+        )
+        response_text = teaching.explanation_ta if teaching else ""
+        hitl_flag, hitl_reason = self.hitl_agent.should_flag(
+            student, query_ctx, sentiment, response_text, interaction_id=0,
+        )
+
+        summary = (response_text[:500]) or (
             "quota_exhausted" if quota_exhausted else (error or "")
         )
 
@@ -663,7 +340,7 @@ class OrchestratorAgent:
         student.district = district
 
         dialect, normalized = self.dialect_agent.detect_and_normalize(text, student.district)
-        register = self.dialect_agent.get_nie_register_guidance(student)
+        register = self.dialect_agent.get_curriculum_register_guidance(student)
         query_ctx = self.intent_agent.parse(
             text, normalized, dialect, student,
             student_answer=student_answer, exercise_topic=exercise_topic,
@@ -724,19 +401,34 @@ class OrchestratorAgent:
         verification: VerificationResult | None = None
         if query_ctx.intent == Intent.CHECK_ANSWER:
             verification = self.answer_verifier.verify(
-                self.llm, query_ctx, exercise, retrieved, student,
+                query_ctx, exercise, retrieved, student,
             )
 
-        self.progress_agent.record_turn(student, retrieved, query_ctx)
+        self.mastery_agent.record_session_context(
+            student, text, query_ctx.intent.value, query_ctx.topic or "",
+        )
         if verification is not None:
-            self.mastery_agent.apply(student, query_ctx, verification, exercise)
+            topic = (exercise.topic if exercise else None) or query_ctx.topic or student.last_topic
+            self.mastery_agent.update_skill(
+                student, topic or "unknown",
+                verification.is_correct,
+                exercise.difficulty if exercise else 1,
+                error_type=verification.error_type or "",
+            )
         self.db.save_student(student)
 
-        sentiment = self.sentiment_agent.analyze(text, teaching.explanation_ta if teaching else "")
-        hitl_flag, hitl_reason = self.hitl_agent.evaluate(sentiment, verification, query_ctx)
-
         elapsed_ms = (time.perf_counter() - t0) * 1000
-        summary = (teaching.explanation_ta[:500] if teaching else "") or (
+        sentiment = self.sentiment_agent.analyze(
+            student, text, int(elapsed_ms),
+            is_retry=False,
+            exercise_correct=verification.is_correct if verification else None,
+        )
+        response_text = teaching.explanation_ta if teaching else ""
+        hitl_flag, hitl_reason = self.hitl_agent.should_flag(
+            student, query_ctx, sentiment, response_text, interaction_id=0,
+        )
+
+        summary = (response_text[:500]) or (
             "quota_exhausted" if quota_exhausted else (error or "")
         )
 
@@ -794,7 +486,7 @@ def _json_safe(obj: Any) -> Any:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="NIE Tamil Math Tutor — modular OrchestratorAgent CLI",
+        description="Kanithan Tamil Math Tutor — modular OrchestratorAgent CLI",
     )
     parser.add_argument("--student-id", default="SL_TM_2024_001")
     parser.add_argument("--student-name", default="மாணவர்")
